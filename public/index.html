@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book Oasis Uluwatu</title>
+<meta name="description" content="Book Palem or Kapuk, the forest villas at Oasis Uluwatu, Pecatu, Bali.">
+<link rel="stylesheet" href="styles.css">
+<!-- Meta Pixel: OASIS PIXEL -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','1081596576728068');
+fbq('track','PageView');
+</script>
+</head>
+<body>
+<header class="site-header">
+  <a class="logo" href="https://www.oasisuluwatu.com">OASIS</a>
+  <ol class="steps" aria-label="Booking steps">
+    <li data-step="dates" aria-current="step">1 · Dates</li>
+    <li data-step="villa">2 · Villa</li>
+    <li data-step="details">3 · Details</li>
+    <li data-step="confirmed">4 · Confirmed</li>
+  </ol>
+  <a class="pill-link" href="https://wa.me/6285190315820">WhatsApp us</a>
+</header>
+
+<main id="app">
+
+  <!-- STEP 1: dates & guests -->
+  <section id="view-dates">
+    <div class="hero">
+      <div class="hero-photo" role="img" aria-label="Palem pool courtyard" style="background-image:url('https://static.wixstatic.com/media/0bd874_2a4cf88e2d9046a0bb5918ac6b9fab66~mv2.jpg/v1/fill/w_1200,h_1500,al_c,q_85/palem.jpg')"></div>
+      <div class="hero-copy">
+        <p class="eyebrow">Book direct · Pecatu, Uluwatu</p>
+        <h1 class="display">Stay at Oasis</h1>
+        <p class="lede">Houses in the forest above Uluwatu, each with three bedrooms and its own pool. Pick your dates to see which are free.</p>
+        <form id="search-form" class="card-form" novalidate>
+          <div class="grid-2">
+            <label class="field caps">Check-in<input type="date" name="checkin" required></label>
+            <label class="field caps">Check-out<input type="date" name="checkout" required></label>
+          </div>
+          <label class="field caps">Guests
+            <select name="guests">
+              <option value="1">1 guest</option><option value="2" selected>2 guests</option><option value="3">3 guests</option>
+              <option value="4">4 guests</option><option value="5">5 guests</option><option value="6">6 guests</option>
+              <option value="7">7 guests</option><option value="8">8 guests</option>
+            </select>
+          </label>
+          <p class="form-error" id="search-error" hidden></p>
+          <button class="btn btn-primary btn-block" type="submit">Check availability</button>
+        </form>
+        <p class="small" style="font-size:14px">Rather talk it through? <a href="https://wa.me/6285190315820">WhatsApp +62 851 9031 5820</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2: results -->
+  <section id="view-results" hidden>
+    <div class="summary-bar"><p id="results-summary"></p><button class="text-btn" data-go="dates">Change dates</button></div>
+    <h1 class="display" style="font-size:44px;margin-bottom:32px">The forest villas</h1>
+    <div id="results" class="stack"></div>
+  </section>
+
+  <!-- STEP 2b: villa & price -->
+  <section id="view-villa" hidden>
+    <button class="text-btn" data-go="results" style="margin-bottom:24px">← All villas</button>
+    <div class="gallery" id="villa-gallery"></div>
+    <div class="split">
+      <div class="main-col">
+        <p class="eyebrow">Forest villa · Pecatu, Uluwatu</p>
+        <h1 class="display" id="villa-name" style="font-size:56px"></h1>
+        <p class="lede" id="villa-blurb" style="max-width:620px"></p>
+        <ul class="facts-list">
+          <li>3 bedrooms</li><li>3 ensuite bathrooms</li><li>Private pool</li>
+          <li>Full kitchen (TEKA)</li><li>Linen by Madeem</li><li>Designed by Patisandhika Sidarta</li>
+        </ul>
+        <div class="panel"><h3>Cancellation</h3><p id="villa-cancel"></p></div>
+      </div>
+      <aside aria-label="Your stay">
+        <div class="stay-card">
+          <div><p style="margin:0;color:var(--green-900)" id="villa-dates"></p><p class="small" id="villa-guests"></p></div>
+          <dl class="breakdown" id="villa-breakdown"></dl>
+          <p class="small" id="villa-usd"></p>
+          <button class="btn btn-primary btn-block" data-go="details">Continue to your details</button>
+          <p class="small" style="text-align:center">You won't be charged yet.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- STEP 3: details & payment -->
+  <section id="view-details" hidden>
+    <div class="split">
+      <form id="details-form" class="main-col" novalidate>
+        <button type="button" class="text-btn" data-go="villa" style="align-self:flex-start">← Back</button>
+        <h1 class="display" style="font-size:48px">Who's coming?</h1>
+        <fieldset>
+          <legend>Lead guest</legend>
+          <div class="grid-2">
+            <label class="field">First name<input name="firstName" autocomplete="given-name" required></label>
+            <label class="field">Last name<input name="lastName" autocomplete="family-name" required></label>
+            <label class="field">Email<input name="email" type="email" autocomplete="email" required></label>
+            <label class="field">WhatsApp number<input name="phone" type="tel" autocomplete="tel" placeholder="+65 …"></label>
+          </div>
+          <p class="small" style="font-size:14px">Your villa host uses WhatsApp to arrange your arrival.</p>
+          <label class="field">Anything we should know? (optional)<textarea name="notes"></textarea></label>
+        </fieldset>
+        <fieldset>
+          <legend>Payment</legend>
+          <div class="pay-box">
+            <p class="small" style="font-size:14px">Card number · Expiry · CVC</p>
+            <div id="card-field" style="min-height:48px;border:1px dashed var(--line-strong);border-radius:4px;display:flex;align-items:center;padding:0 12px;font-size:14px;color:var(--green-500)">Online card payment is being connected.</div>
+            <p class="small">Card details go straight to the payment provider. Oasis never sees or stores them.</p>
+          </div>
+          <label class="check"><input type="checkbox" name="agree" required><span>I agree to the house rules and the cancellation policy.</span></label>
+        </fieldset>
+        <p class="form-error" id="details-error" hidden></p>
+        <button class="btn btn-primary btn-block" type="submit" id="pay-btn" style="min-height:56px;font-size:17px" disabled>Confirm and pay</button>
+      </form>
+      <aside aria-label="Your stay">
+        <div class="stay-card">
+          <h2 class="display" id="sum-name" style="font-size:30px"></h2>
+          <p style="margin:0" id="sum-dates"></p>
+          <dl class="breakdown"><div class="total"><dt>Total</dt><dd id="sum-total"></dd></div></dl>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- STEP 4: confirmed -->
+  <section id="view-confirmed" class="confirmed" hidden>
+    <div class="split" style="padding-top:40px">
+      <div class="main-col">
+        <p class="eyebrow" id="conf-code"></p>
+        <h1 class="display" id="conf-title">See you soon.</h1>
+        <p class="lede" id="conf-lede" style="max-width:560px"></p>
+        <div><a class="btn btn-outline" href="https://www.oasisuluwatu.com" style="color:var(--sand-100);border-color:var(--line-on-ink)">Back to Oasis</a></div>
+      </div>
+      <aside>
+        <p class="eyebrow" style="padding:20px 0">What happens next</p>
+        <ol class="next-list">
+          <li><span>1</span><span>Our reservations team emails your confirmation and receipt.</span></li>
+          <li><span>2</span><span>Before you arrive, your villa host messages you on WhatsApp to sort out arrival.</span></li>
+          <li><span>3</span><span>Questions in the meantime? <a href="https://wa.me/6285190315820">WhatsApp +62 851 9031 5820</a>.</span></li>
+        </ol>
+      </aside>
+    </div>
+  </section>
+
+  <div id="view-loading" class="loading" hidden>Checking the villas…</div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

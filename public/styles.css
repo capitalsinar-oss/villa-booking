@@ -1,0 +1,146 @@
+/* Oasis booking page — built on the Oasis Design System tokens. */
+
+@font-face { font-family: "Neue Montreal"; src: url("fonts/NeueMontreal-Regular.otf") format("opentype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Neue Montreal"; src: url("fonts/NeueMontreal-Bold.otf") format("opentype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Marcellus"; src: url("fonts/Marcellus-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Miller Display"; src: url("fonts/Miller-Display-Light.otf") format("opentype"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "Block"; src: url("fonts/block-regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+
+:root {
+  --green-900: #1E2415; --green-800: #283019; --green-700: #303820; --green-600: #3C462A;
+  --green-500: #4E5A38; --green-400: #6B7752; --green-300: #97A07E;
+  --sand-50: #FAF6EE; --sand-100: #F4EEE0; --sand-200: #ECE3D1; --sand-300: #E0D0C0; --sand-400: #D2BFA8;
+  --clay-500: #B4744B; --white: #FFFFFF;
+  --line: rgba(48, 56, 32, 0.16); --line-strong: rgba(48, 56, 32, 0.32); --line-on-ink: rgba(224, 208, 192, 0.22);
+  --font-display: "Miller Display", "Marcellus", Georgia, serif;
+  --font-serif: "Marcellus", Georgia, serif;
+  --font-sans: "Neue Montreal", "Helvetica Neue", Arial, sans-serif;
+  --font-logo: "Block", "Neue Montreal", sans-serif;
+  --radius-sm: 4px; --radius-md: 8px; --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(30, 36, 21, 0.06);
+  --shadow-md: 0 6px 18px rgba(30, 36, 21, 0.08);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--sand-100); color: var(--green-700); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; }
+a { color: var(--green-700); }
+a:hover { color: var(--green-900); }
+img { display: block; max-width: 100%; }
+[hidden] { display: none !important; }
+
+.eyebrow { margin: 0; font-family: var(--font-serif); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green-500); }
+.display { margin: 0; font-family: var(--font-display); font-weight: 300; line-height: 1.05; color: var(--green-900); }
+.muted { color: var(--green-500); }
+
+/* Header */
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 32px; border-bottom: 1px solid var(--line); }
+.logo { font-family: var(--font-logo); font-size: 26px; letter-spacing: 0.06em; color: var(--green-700); text-decoration: none; }
+.steps { display: flex; flex-wrap: wrap; gap: 24px; list-style: none; margin: 0; padding: 0; font-family: var(--font-serif); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green-500); }
+.steps li { padding-bottom: 4px; }
+.steps li[aria-current="step"] { color: var(--green-900); border-bottom: 1px solid var(--green-900); }
+.pill-link { font-size: 14px; text-decoration: none; border: 1px solid var(--line-strong); border-radius: var(--radius-pill); padding: 10px 18px; }
+
+main { max-width: 1200px; margin: 0 auto; padding: 32px 32px 80px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 28px; border: 0; border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: 16px; text-decoration: none; cursor: pointer; }
+.btn-primary { background: var(--green-700); color: var(--sand-100); }
+.btn-primary:hover { background: var(--green-900); color: var(--sand-100); }
+.btn-primary[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn-outline { background: transparent; color: var(--green-700); border: 1px solid var(--line-strong); }
+.btn-block { width: 100%; }
+.text-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; color: var(--green-700); text-decoration: underline; cursor: pointer; }
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--green-500); }
+.field.caps { font-family: var(--font-serif); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; }
+.field input, .field select, .field textarea { font-family: var(--font-sans); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--green-900); background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 12px; min-height: 48px; width: 100%; }
+.field textarea { min-height: 96px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--green-700); outline-offset: 1px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.form-error { margin: 0; color: #8A3B1A; font-size: 14px; }
+
+/* Step 1 */
+.hero { display: flex; flex-wrap: wrap; gap: 48px; align-items: stretch; }
+.hero-photo { flex: 1 1 460px; min-height: 560px; border-radius: var(--radius-md); background: var(--green-600) center / cover no-repeat; }
+.hero-copy { flex: 1 1 420px; display: flex; flex-direction: column; justify-content: center; gap: 24px; min-width: 0; }
+.hero-copy .display { font-size: 56px; }
+.lede { margin: 0; font-size: 18px; line-height: 1.6; max-width: 460px; }
+.card-form { display: flex; flex-direction: column; gap: 16px; background: var(--sand-50); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px; }
+
+/* Summary bar */
+.summary-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: var(--sand-50); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 24px; margin-bottom: 32px; }
+.summary-bar p { margin: 0; color: var(--green-900); }
+
+/* Villa cards */
+.stack { display: flex; flex-direction: column; gap: 32px; }
+.villa-card { display: flex; flex-wrap: wrap; background: var(--white); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-md); }
+.villa-card .photo { flex: 1 1 420px; min-height: 320px; background: var(--green-600) center / cover no-repeat; }
+.villa-card .body { flex: 1 1 420px; padding: 32px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.villa-card h2 { font-size: 40px; }
+.villa-card .facts { margin: 0; font-size: 15px; color: var(--green-500); }
+.villa-card .blurb { margin: 0; line-height: 1.6; }
+.villa-card .foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); }
+.price { margin: 0; font-family: var(--font-display); font-weight: 300; font-size: 30px; color: var(--green-900); }
+.price-note { margin: 4px 0 0; font-size: 14px; color: var(--green-500); }
+.booked { margin: 0; color: var(--green-900); display: flex; align-items: center; gap: 10px; }
+.booked::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: var(--clay-500); }
+
+/* Villa detail */
+.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 32px; }
+.gallery .g-main { grid-column: span 2; grid-row: span 2; min-height: 420px; }
+.gallery div { border-radius: var(--radius-md); background: var(--green-600) center / cover no-repeat; min-height: 204px; }
+.split { display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; }
+.split > .main-col { flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.split > aside { flex: 1 1 340px; }
+.facts-list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+.facts-list li { padding: 12px 0; border-top: 1px solid var(--line); }
+.panel { padding: 20px; background: var(--sand-200); border-radius: var(--radius-md); }
+.panel h3 { margin: 0 0 8px; font-family: var(--font-serif); font-weight: 400; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green-900); }
+.panel p { margin: 0; font-size: 15px; line-height: 1.6; }
+.stay-card { display: flex; flex-direction: column; gap: 18px; background: var(--white); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: 28px; }
+.breakdown { margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+.breakdown div { display: flex; justify-content: space-between; gap: 16px; }
+.breakdown dd { margin: 0; text-align: right; }
+.breakdown .total { padding-top: 14px; border-top: 1px solid var(--line-strong); color: var(--green-900); align-items: baseline; }
+.breakdown .total dd { font-family: var(--font-display); font-weight: 300; font-size: 26px; }
+.small { margin: 0; font-size: 13px; color: var(--green-500); }
+
+/* Details */
+fieldset { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 16px; }
+legend { margin-bottom: 16px; font-family: var(--font-serif); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green-900); }
+.pay-box { display: flex; flex-direction: column; gap: 12px; padding: 20px; background: var(--white); border: 1px solid var(--line-strong); border-radius: var(--radius-md); }
+.check { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; line-height: 1.5; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: #303820; }
+
+/* Confirmed */
+body.ink { background: var(--green-700); color: var(--sand-100); }
+body.ink .site-header { border-color: var(--line-on-ink); }
+body.ink .logo { color: var(--sand-300); }
+body.ink .steps { color: var(--sand-400); }
+body.ink .steps li[aria-current="step"] { color: var(--sand-100); border-color: var(--sand-100); }
+body.ink a, body.ink .pill-link { color: var(--sand-100); border-color: var(--line-on-ink); }
+.confirmed .display { color: var(--sand-100); font-size: 64px; }
+.confirmed .eyebrow { color: var(--sand-300); }
+.next-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line-on-ink); }
+.next-list li { display: flex; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line-on-ink); }
+.next-list span:first-child { font-family: var(--font-display); font-size: 28px; color: var(--sand-300); min-width: 28px; }
+
+.loading { padding: 64px 0; text-align: center; color: var(--green-500); }
+
+@media (max-width: 640px) {
+  .site-header { padding: 16px 20px; }
+  .steps { display: none; }
+  main { padding: 20px 20px 64px; }
+  .hero-photo { min-height: 260px; }
+  .hero-copy .display { font-size: 40px; }
+  .villa-card .photo { min-height: 220px; }
+  .villa-card .body { padding: 20px; }
+  .villa-card h2 { font-size: 30px; }
+  .gallery { grid-template-columns: 1fr; }
+  .gallery .g-main { grid-column: auto; grid-row: auto; min-height: 260px; }
+  .gallery div:not(.g-main) { display: none; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .confirmed .display { font-size: 44px; }
+}

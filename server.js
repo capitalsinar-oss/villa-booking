@@ -1,94 +1,63 @@
 /**
- * Anwa / Oasis Villas — Booking Search Service
+ * Oasis Uluwatu — direct booking service
  * -------------------------------------------------
- * One small backend that Wix (and later ManyChat / WhatsApp) calls.
- * It holds the Guesty Booking Engine API credentials, caches the auth
- * token, checks availability + pricing across your villas, and returns
- * a clean list of only the available ones.
+ * Serves the booking page (public/) and a small API on top of the
+ * Guesty Booking Engine (BE) API:
+ *   GET  /api/search      availability + live quotes for the villas
+ *   POST /api/book        create an instant reservation from a quote
+ *   GET  /api/status      what the BE API key can see (no secrets)
  *
- * Guesty still handles the actual booking + payment — this service is
- * search + display only.
+ * Secrets live in Render environment variables, never in this file:
+ *   GUESTY_CLIENT_ID, GUESTY_CLIENT_SECRET
  */
 
+const path = require("path");
 const express = require("express");
+
 const app = express();
+app.use(express.json({ limit: "50kb" }));
 
 // ---------------------------------------------------------------------------
 // 1. CONFIG
 // ---------------------------------------------------------------------------
 
-// Credentials come from environment variables set in the Render dashboard —
-// NEVER hard-code them in this file.
 const CLIENT_ID = process.env.GUESTY_CLIENT_ID;
 const CLIENT_SECRET = process.env.GUESTY_CLIENT_SECRET;
-
-// Your villas. Add Ceylon once Balinest includes it; add Jati when it's live.
-// `order` controls display order in search results.
-const VILLAS = [
-  {
-    key: "kapuk",
-    name: "Villa Kapuk",
-    listingId: "69b67cfa3e48290011c5d1b2",
-    bookingUrl: "https://book.balinestvillas.com/en/properties/69b67cfa3e48290011c5d1b2",
-    order: 1,
-  },
-  {
-    key: "palem",
-    name: "Villa Palem",
-    listingId: "6a1330f6ee884400143bd533",
-    bookingUrl: "https://book.balinestvillas.com/en/properties/6a1330f6ee884400143bd533",
-    order: 2,
-  },
-  // --- Not yet enabled — uncomment when ready ---
-  // {
-  //   key: "ceylon",
-  //   name: "Ceylon Residence",
-  //   listingId: "69cf268b4d255a0013ac88d2",
-  //   bookingUrl: "https://book.balinestvillas.com/en/properties/69cf268b4d255a0013ac88d2",
-  //   order: 3,
-  // },
-  // {
-  //   key: "jati",
-  //   name: "Villa Jati",
-  //   listingId: "PUT_JATI_ID_HERE",
-  //   bookingUrl: "https://book.balinestvillas.com/en/properties/PUT_JATI_ID_HERE",
-  //   order: 4,
-  // },
-];
-
-// Which website(s) are allowed to call this service (CORS).
-// Add your live Wix domain here. Keep localhost for testing.
-const ALLOWED_ORIGINS = [
-  "https://www.oasisuluwatu.com",
-  "https://oasisuluwatu.com",
-  "http://localhost:3000",
-];
-
 const GUESTY_BASE = "https://booking.guesty.com";
 
+// Villas shown on the booking page, in display order.
+// Jati is added later (needs its listing ID and Balinest to include it).
+// Ceylon is never shown on the Oasis booking page.
+const VILLAS = [
+  {
+    key: "palem",
+    name: "Palem",
+    listingId: "6a1330f6ee884400143bd533",
+    group: "forest",
+  },
+  {
+    key: "kapuk",
+    name: "Kapuk",
+    listingId: "69b67cfa3e48290011c5d1b2",
+    group: "forest",
+  },
+];
+
 // ---------------------------------------------------------------------------
-// 2. TOKEN CACHING
+// 2. GUESTY TOKEN (cached; Guesty limits how often a new one can be issued)
 // ---------------------------------------------------------------------------
-// Guesty tokens last 24h and can only be renewed a few times per day, so we
-// cache the token in memory and only re-fetch when it's close to expiring.
 
 let cachedToken = null;
-let tokenExpiresAt = 0; // epoch ms
+let tokenExpiresAt = 0;
+let tokenPromise = null;
 
-async function getToken() {
-  const now = Date.now();
-  // Re-use the cached token until 5 minutes before it expires.
-  if (cachedToken && now < tokenExpiresAt - 5 * 60 * 1000) {
-    return cachedToken;
-  }
-
+async function fetchToken() {
   const body = new URLSearchParams({
     grant_type: "client_credentials",
     scope: "booking_engine:api",
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
   });
-
   const res = await fetch(`${GUESTY_BASE}/oauth2/token`, {
     method: "POST",
     headers: {
@@ -97,32 +66,91 @@ async function getToken() {
     },
     body,
   });
-
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Token fetch failed (${res.status}): ${text}`);
+    throw new Error(`Token fetch failed (${res.status}): ${text.slice(0, 300)}`);
   }
-
   const data = await res.json();
   cachedToken = data.access_token;
-  // expires_in is in seconds
-  tokenExpiresAt = now + (data.expires_in || 86400) * 1000;
+  tokenExpiresAt = Date.now() + (data.expires_in || 86400) * 1000;
   return cachedToken;
 }
 
-// ---------------------------------------------------------------------------
-// 3. QUOTE A SINGLE VILLA
-// ---------------------------------------------------------------------------
-// Returns { available: true, ...pricing } or { available: false, reason }.
+async function getToken() {
+  if (cachedToken && Date.now() < tokenExpiresAt - 5 * 60 * 1000) return cachedToken;
+  if (!tokenPromise) {
+    tokenPromise = fetchToken().finally(() => {
+      tokenPromise = null;
+    });
+  }
+  return tokenPromise;
+}
 
-async function quoteVilla(villa, checkIn, checkOut, guests, token) {
-  const res = await fetch(`${GUESTY_BASE}/api/reservations/quotes`, {
-    method: "POST",
+async function guesty(pathname, options = {}) {
+  const token = await getToken();
+  const res = await fetch(`${GUESTY_BASE}${pathname}`, {
+    ...options,
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
       Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
     },
+  });
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (e) {
+    data = null;
+  }
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ---------------------------------------------------------------------------
+// 3. QUOTES
+// ---------------------------------------------------------------------------
+
+function summariseQuote(villa, data) {
+  const plan = data?.rates?.ratePlans?.[0];
+  const rp = plan?.ratePlan;
+  const money = rp?.money;
+  if (!rp || !money) return null;
+
+  const items = Array.isArray(money.invoiceItems) ? money.invoiceItems : [];
+  const lines = items.map((i) => ({
+    title: i.title,
+    amount: i.amount,
+    type: i.normalType || i.type,
+  }));
+  const itemsTotal = items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const total = itemsTotal > 0 ? itemsTotal : money.hostPayout;
+
+  // Guesty gives a USD figure for the host payout; use the same ratio for an
+  // approximate USD total shown next to the charged currency.
+  const usdRatio = money.hostPayout ? (money.hostPayoutUsd || 0) / money.hostPayout : 0;
+
+  return {
+    key: villa.key,
+    name: villa.name,
+    group: villa.group,
+    available: true,
+    quoteId: data._id,
+    expiresAt: data.expiresAt,
+    ratePlanId: rp._id,
+    ratePlanName: rp.name || "Standard",
+    cancellationPolicy: rp.cancellationPolicy || [],
+    cancellationFee: rp.cancellationFee || null,
+    nights: Array.isArray(rp.days) ? rp.days.length : null,
+    currency: money.currency,
+    total,
+    totalUsd: usdRatio ? Math.round(total * usdRatio) : null,
+    lines,
+  };
+}
+
+async function quoteVilla(villa, checkIn, checkOut, guests) {
+  const { ok, status, data } = await guesty("/api/reservations/quotes", {
+    method: "POST",
     body: JSON.stringify({
       checkInDateLocalized: checkIn,
       checkOutDateLocalized: checkOut,
@@ -131,111 +159,160 @@ async function quoteVilla(villa, checkIn, checkOut, guests, token) {
     }),
   });
 
-  const data = await res.json();
-
-  // Not available for these dates (blocked / min-nights / etc.), or no access.
-  if (!res.ok || data.error) {
+  if (!ok || !data || data.error) {
     return {
       key: villa.key,
       name: villa.name,
+      group: villa.group,
       available: false,
-      reason: data.error?.code || `HTTP_${res.status}`,
+      reason: data?.error?.code || `HTTP_${status}`,
+      message: data?.error?.message || null,
     };
   }
-
-  // Pull pricing out of the first rate plan (Standard).
-  const plan = data?.rates?.ratePlans?.[0];
-  const money = plan?.ratePlan?.money;
-
-  if (!money) {
-    return { key: villa.key, name: villa.name, available: false, reason: "NO_RATE" };
-  }
-
-  return {
-    key: villa.key,
-    name: villa.name,
-    order: villa.order,
-    available: true,
-    quoteId: data._id,
-    currency: money.currency, // "IDR"
-    totalIDR: money.hostPayout, // total in IDR
-    totalUSD: money.hostPayoutUsd, // Guesty's converted USD figure
-    nights: plan?.ratePlan?.days?.length || null,
-    ratePlanName: plan?.ratePlan?.name || "Standard",
-    cancellationPolicy: plan?.ratePlan?.cancellationPolicy || null,
-    bookingUrl: `${villa.bookingUrl}?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`,
-  };
+  return (
+    summariseQuote(villa, data) || {
+      key: villa.key,
+      name: villa.name,
+      group: villa.group,
+      available: false,
+      reason: "NO_RATE",
+    }
+  );
 }
 
 // ---------------------------------------------------------------------------
-// 4. CORS
+// 4. ROUTES
 // ---------------------------------------------------------------------------
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
+const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
-// ---------------------------------------------------------------------------
-// 5. ROUTES
-// ---------------------------------------------------------------------------
+app.get("/healthz", (req, res) => res.json({ status: "ok" }));
 
-// Health check — visit this in a browser to confirm the service is up.
-app.get("/", (req, res) => {
-  res.json({ status: "ok", villas: VILLAS.map((v) => v.name) });
-});
-
-// The main search endpoint.
-// Example: /search?checkin=2026-11-10&checkout=2026-11-14&guests=4
-app.get("/search", async (req, res) => {
-  const { checkin, checkout, guests } = req.query;
-
-  // --- basic validation ---
-  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+app.get("/api/search", async (req, res) => {
+  const { checkin, checkout } = req.query;
   if (!dateRe.test(checkin || "") || !dateRe.test(checkout || "")) {
-    return res.status(400).json({ error: "checkin and checkout must be YYYY-MM-DD" });
+    return res.status(400).json({ error: "dates_invalid" });
   }
   if (new Date(checkout) <= new Date(checkin)) {
-    return res.status(400).json({ error: "checkout must be after checkin" });
+    return res.status(400).json({ error: "checkout_before_checkin" });
   }
-  const guestCount = parseInt(guests, 10) || 2;
+  const guests = Math.min(Math.max(parseInt(req.query.guests, 10) || 2, 1), 20);
 
   try {
-    const token = await getToken();
-
-    // Quote all villas in parallel.
-    const results = await Promise.all(
-      VILLAS.map((v) => quoteVilla(v, checkin, checkout, guestCount, token))
-    );
-
-    const available = results
-      .filter((r) => r.available)
-      .sort((a, b) => a.order - b.order);
-
-    res.json({
-      checkin,
-      checkout,
-      guests: guestCount,
-      availableCount: available.length,
-      villas: available,
-      // Included for debugging; remove if you don't want unavailable reasons public.
-      unavailable: results.filter((r) => !r.available),
-    });
+    const villas = await Promise.all(VILLAS.map((v) => quoteVilla(v, checkin, checkout, guests)));
+    res.json({ checkin, checkout, guests, villas });
   } catch (err) {
-    console.error("Search error:", err.message);
-    res.status(500).json({ error: "search_failed" });
+    console.error("search_failed:", err.message);
+    res.status(502).json({ error: "search_failed" });
   }
 });
+
+app.post("/api/book", async (req, res) => {
+  const { quoteId, ratePlanId, ccToken, guest, policy, tracking } = req.body || {};
+  if (!quoteId || !ratePlanId || !ccToken) {
+    return res.status(400).json({ error: "missing_quote_or_payment" });
+  }
+  if (!guest?.firstName || !guest?.lastName || !guest?.email) {
+    return res.status(400).json({ error: "missing_guest_details" });
+  }
+
+  try {
+    const body = {
+      ratePlanId,
+      ccToken,
+      guest: {
+        firstName: String(guest.firstName).slice(0, 80),
+        lastName: String(guest.lastName).slice(0, 80),
+        email: String(guest.email).slice(0, 160),
+        ...(guest.phone ? { phone: String(guest.phone).slice(0, 40) } : {}),
+      },
+      ...(policy ? { policy } : {}),
+    };
+    const { ok, status, data } = await guesty(
+      `/api/reservations/quotes/${encodeURIComponent(quoteId)}/instant`,
+      { method: "POST", body: JSON.stringify(body) }
+    );
+
+    if (!ok || !data || data.error) {
+      console.error("book_failed:", status, JSON.stringify(data?.error || data).slice(0, 500));
+      return res.status(status >= 400 && status < 500 ? status : 502).json({
+        error: "booking_failed",
+        code: data?.error?.code || null,
+      });
+    }
+
+    // Booking confirmed. Conversion reporting (Meta Conversions API, Google)
+    // and the notification to Jayne are added in the next step.
+    console.log(
+      "BOOKED",
+      JSON.stringify({
+        reservationId: data._id,
+        confirmationCode: data.confirmationCode,
+        status: data.status,
+        tracking: tracking || null,
+      })
+    );
+
+    res.json({
+      reservationId: data._id,
+      confirmationCode: data.confirmationCode,
+      status: data.status,
+    });
+  } catch (err) {
+    console.error("book_error:", err.message);
+    res.status(502).json({ error: "booking_failed" });
+  }
+});
+
+// What the Booking Engine key can see. No secrets or account numbers returned.
+async function bookingEngineStatus() {
+  const out = { tokenOk: false, listings: [], paymentProviders: {} };
+  await getToken();
+  out.tokenOk = true;
+
+  const listings = await guesty("/api/listings?limit=50");
+  const rows = listings.data?.results || (Array.isArray(listings.data) ? listings.data : []);
+  out.listings = rows.map((r) => ({ id: r._id, nickname: r.nickname || null, title: r.title || null }));
+
+  const ids = new Set([...out.listings.map((l) => l.id), ...VILLAS.map((v) => v.listingId)]);
+  for (const id of ids) {
+    const p = await guesty(`/api/listings/${id}/payment-provider`);
+    out.paymentProviders[id] = p.ok
+      ? {
+          providerType: p.data?.providerType || null,
+          processor: p.data?.paymentProcessorName || null,
+          status: p.data?.status || null,
+        }
+      : { error: p.data?.error?.code || `HTTP_${p.status}` };
+  }
+  return out;
+}
+
+app.get("/api/status", async (req, res) => {
+  try {
+    res.json(await bookingEngineStatus());
+  } catch (err) {
+    res.status(502).json({ tokenOk: false, error: err.message.slice(0, 200) });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 5. BOOKING PAGE
+// ---------------------------------------------------------------------------
+
+app.use(express.static(path.join(__dirname, "public"), { maxAge: "1h" }));
+app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 // ---------------------------------------------------------------------------
 // 6. START
 // ---------------------------------------------------------------------------
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Villa search service running on :${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Oasis booking service running on :${PORT}`);
+  // One status line in the logs at start-up, so set-up can be checked
+  // from the Render dashboard without calling the API by hand.
+  bookingEngineStatus()
+    .then((s) => console.log("BE_STATUS", JSON.stringify(s)))
+    .catch((e) => console.log("BE_STATUS_ERROR", e.message.slice(0, 300)));
+});
