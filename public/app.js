@@ -142,7 +142,7 @@
         ? el("div", { class: "foot" }, [
             el("div", {}, [
               el("p", { class: "price", text: money(v.total, v.currency) }),
-              el("p", { class: "price-note", text: "for " + v.nights + (v.nights === 1 ? " night" : " nights") + " · fees and taxes included" })
+              el("p", { class: "price-note", text: "for " + v.nights + (v.nights === 1 ? " night" : " nights") + " · non-refundable" })
             ]),
             el("button", { class: "btn btn-primary", onclick: function () { openVilla(v.key); } }, ["Choose " + v.name])
           ])
