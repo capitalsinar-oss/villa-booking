@@ -194,7 +194,7 @@ async function quoteVilla(villa, checkIn, checkOut, guests) {
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
-app.get("/healthz", (req, res) => res.json({ status: "ok" }));
+app.get("/healthz", (req, res) => res.json({ status: "ok", build: "v3" }));
 
 app.get("/api/search", async (req, res) => {
   const { checkin, checkout } = req.query;
