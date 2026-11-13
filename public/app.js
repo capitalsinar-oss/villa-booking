@@ -10,7 +10,7 @@
   // Ceylon's photos are not in the Oasis Wix library yet: Airbnb listing photos until they are.
   function abnb(id) { return "https://a0.muscache.com/im/pictures/hosting/Hosting-1655454682482668727/original/" + id + ".jpeg?im_w=1200"; }
 
-  var WA = "6285190315820";
+  var WA = "6281236676828";
   var VILLAS = {
     palem: {
       name: "Oasis Palem", dot: "forest", eyebrow: "Forest villa · Pecatu, Uluwatu", bookable: true, max: 6,
