@@ -194,7 +194,7 @@ async function quoteVilla(villa, checkIn, checkOut, guests) {
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
-app.get("/healthz", (req, res) => res.json({ status: "ok", build: "v3" }));
+app.get("/healthz", (req, res) => res.json({ status: "ok", build: BUILD }));
 
 app.get("/api/search", async (req, res) => {
   const { checkin, checkout } = req.query;
@@ -378,8 +378,26 @@ app.get("/api/status", async (req, res) => {
 // 5. BOOKING PAGE
 // ---------------------------------------------------------------------------
 
-app.use(express.static(path.join(__dirname, "public"), { maxAge: "1h" }));
-app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+// The page itself is never cached, so a new deploy shows at once. Its CSS and
+// JS are linked with a ?v= version, so they can be cached and still update.
+const BUILD = (process.env.RENDER_GIT_COMMIT || String(Date.now())).slice(0, 8);
+const fs = require("fs");
+const pageHtml = () =>
+  fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8").replace(/__BUILD__/g, BUILD);
+function sendPage(req, res) {
+  res.set("Cache-Control", "no-cache");
+  res.type("html").send(pageHtml());
+}
+app.get(["/", "/index.html"], sendPage);
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    index: false,
+    setHeaders: (res, file) => {
+      res.setHeader("Cache-Control", /\.(ttf|otf)$/.test(file) ? "public, max-age=2592000" : "public, max-age=31536000, immutable");
+    },
+  })
+);
+app.get("*", sendPage);
 
 // ---------------------------------------------------------------------------
 // 6. START
