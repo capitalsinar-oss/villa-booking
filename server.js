@@ -79,15 +79,42 @@ async function fetchToken() {
   const data = await res.json();
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in || 86400) * 1000;
+  saveTokenCache();
   return cachedToken;
 }
 
+// Optional: keep the token across restarts when a persistent disk is mounted
+// (set TOKEN_CACHE_PATH, e.g. /var/data/guesty-token.json).
+const TOKEN_CACHE_PATH = process.env.TOKEN_CACHE_PATH || "";
+function saveTokenCache() {
+  if (!TOKEN_CACHE_PATH) return;
+  try {
+    require("fs").writeFileSync(TOKEN_CACHE_PATH, JSON.stringify({ token: cachedToken, expiresAt: tokenExpiresAt }), { mode: 0o600 });
+  } catch (e) { console.log("token cache write failed:", e.message); }
+}
+(function loadTokenCache() {
+  if (!TOKEN_CACHE_PATH) return;
+  try {
+    const c = JSON.parse(require("fs").readFileSync(TOKEN_CACHE_PATH, "utf8"));
+    if (c.token && c.expiresAt > Date.now() + 10 * 60 * 1000) { cachedToken = c.token; tokenExpiresAt = c.expiresAt; }
+  } catch (e) { /* no cache yet */ }
+})();
+
+// After Guesty refuses a token (429), wait before asking again, so repeated
+// searches don't keep hitting the limit.
+let tokenBlockedUntil = 0;
 async function getToken() {
   if (cachedToken && Date.now() < tokenExpiresAt - 5 * 60 * 1000) return cachedToken;
+  if (Date.now() < tokenBlockedUntil) throw new Error("Token fetch paused after rate limit");
   if (!tokenPromise) {
-    tokenPromise = fetchToken().finally(() => {
-      tokenPromise = null;
-    });
+    tokenPromise = fetchToken()
+      .catch((err) => {
+        if (/\(429\)/.test(err.message)) tokenBlockedUntil = Date.now() + 15 * 60 * 1000;
+        throw err;
+      })
+      .finally(() => {
+        tokenPromise = null;
+      });
   }
   return tokenPromise;
 }
@@ -406,9 +433,7 @@ app.get("*", sendPage);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Oasis booking service running on :${PORT}`);
-  // One status line in the logs at start-up, so set-up can be checked
-  // from the Render dashboard without calling the API by hand.
-  bookingEngineStatus()
-    .then((s) => console.log("BE_STATUS", JSON.stringify(s)))
-    .catch((e) => console.log("BE_STATUS_ERROR", e.message.slice(0, 300)));
+  // No Guesty call at start-up: Guesty only issues a few tokens a day, and
+  // every deploy or restart would use one. The token is fetched on the first
+  // search instead. /api/status still shows the set-up on demand.
 });
