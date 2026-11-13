@@ -6,6 +6,9 @@ Booking Engine (BE) API. Hosted on Render (`villa-booking`), to be served at
 
 ## What it does
 
+Design v3 (Nov 2026): slim booking bar on desktop, docked button and full-screen sheet on phones; four villa cards (Palem and Kapuk bookable live; Jati and Ceylon link to WhatsApp until they are in the Booking Engine); Airbnb-style price details; deep links `?checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=4&children=2&villa=forest|jati|ceylon|all` (or `from=jati`).
+
+
 1. **Dates & guests** → `GET /api/search` asks Guesty for a live quote per villa.
 2. **Results** → Palem, then Kapuk (unavailable villas show as "Not available").
 3. **Villa & price** → the quote's price lines, total and cancellation policy.
@@ -29,6 +32,7 @@ BE API and we have its listing ID. Ceylon is never shown on this page.
 |-----|------|
 | `GUESTY_CLIENT_ID` | Booking Engine API client ID |
 | `GUESTY_CLIENT_SECRET` | Booking Engine API client secret |
+| `STRIPE_PUBLISHABLE_KEY` | Balinest's Stripe publishable key (`pk_live_…`). Public by design. While it is empty, guests fill in their details on our page, the lead is logged with its ad source (`LEAD` in the logs), and payment opens on Balinest's own checkout. Once set, card, Apple Pay and Google Pay are taken on our page and the booking is made through `/api/book`. |
 
 ## Tracking
 

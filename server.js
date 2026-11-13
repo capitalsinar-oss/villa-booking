@@ -6,9 +6,15 @@
  *   GET  /api/search      availability + live quotes for the villas
  *   POST /api/book        create an instant reservation from a quote
  *   GET  /api/status      what the BE API key can see (no secrets)
+ *   GET  /api/config      public settings for the page (Stripe publishable key)
+ *   POST /api/lead        guest details + ad source, before payment
+ *   POST /api/transfer    airport-transfer request after a booking
  *
  * Secrets live in Render environment variables, never in this file:
  *   GUESTY_CLIENT_ID, GUESTY_CLIENT_SECRET
+ * Public setting (safe to show in the page):
+ *   STRIPE_PUBLISHABLE_KEY  Balinest's Stripe key (pk_live_...). While it is
+ *   not set, guests pay on Balinest's own checkout page instead.
  */
 
 const path = require("path");
@@ -134,6 +140,7 @@ function summariseQuote(villa, data) {
     name: villa.name,
     group: villa.group,
     available: true,
+    listingId: villa.listingId,
     quoteId: data._id,
     expiresAt: data.expiresAt,
     ratePlanId: rp._id,
@@ -165,6 +172,7 @@ async function quoteVilla(villa, checkIn, checkOut, guests) {
       name: villa.name,
       group: villa.group,
       available: false,
+      listingId: villa.listingId,
       reason: data?.error?.code || `HTTP_${status}`,
       message: data?.error?.message || null,
     };
@@ -262,6 +270,76 @@ app.post("/api/book", async (req, res) => {
     console.error("book_error:", err.message);
     res.status(502).json({ error: "booking_failed" });
   }
+});
+
+
+// Public settings for the page. The Stripe publishable key is public by
+// design; when it is missing the page hands payment to Balinest's checkout.
+app.get("/api/config", (req, res) => {
+  res.json({
+    stripePk: process.env.STRIPE_PUBLISHABLE_KEY || null,
+    checkoutBase: "https://book.balinestvillas.com/en/properties",
+  });
+});
+
+function clean(v, n) {
+  return v == null ? null : String(v).replace(/[\u0000-\u001f]/g, " ").slice(0, n);
+}
+function cleanTracking(t) {
+  const out = {};
+  if (t && typeof t === "object") {
+    for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid", "from", "landing", "referrer"]) {
+      if (t[k]) out[k] = clean(t[k], 300);
+    }
+  }
+  return out;
+}
+
+// Guest details and ad source, sent just before payment. Logged as LEAD so
+// every attempt is recorded with its source even when payment happens on
+// Balinest's page. (Email/WhatsApp alert to Jayne: next step.)
+app.post("/api/lead", (req, res) => {
+  const b = req.body || {};
+  const lead = {
+    villa: clean(b.villa, 20),
+    checkin: clean(b.checkin, 10),
+    checkout: clean(b.checkout, 10),
+    adults: Number(b.adults) || null,
+    children: Number(b.children) || 0,
+    childAges: Array.isArray(b.childAges) ? b.childAges.slice(0, 10).map((a) => Number(a) || 0) : [],
+    total: Number(b.total) || null,
+    currency: clean(b.currency, 5),
+    firstName: clean(b.firstName, 80),
+    lastName: clean(b.lastName, 80),
+    email: clean(b.email, 160),
+    whatsapp: clean(b.whatsapp, 40),
+    occasion: clean(b.occasion, 300),
+    mode: clean(b.mode, 20),
+    tracking: cleanTracking(b.tracking),
+  };
+  if (!lead.villa || !lead.checkin || (!lead.email && !lead.whatsapp)) {
+    return res.status(400).json({ error: "missing_details" });
+  }
+  console.log("LEAD", JSON.stringify(lead));
+  res.json({ ok: true });
+});
+
+// Airport transfer with Pak Nyoman, asked for after a booking is confirmed.
+app.post("/api/transfer", (req, res) => {
+  const b = req.body || {};
+  const t = {
+    confirmationCode: clean(b.confirmationCode, 40),
+    want: b.want === true,
+    flight: clean(b.flight, 20),
+    landing: clean(b.landing, 30),
+    bags: Number(b.bags) || 0,
+    boards: Number(b.boards) || 0,
+    guests: Number(b.guests) || null,
+    cars: Number(b.cars) || null,
+    contact: clean(b.contact, 160),
+  };
+  console.log("TRANSFER", JSON.stringify(t));
+  res.json({ ok: true });
 });
 
 // What the Booking Engine key can see. No secrets or account numbers returned.
