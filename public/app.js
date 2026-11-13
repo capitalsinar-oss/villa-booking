@@ -109,7 +109,21 @@
     store("oasis_src", JSON.stringify(saved));
   })();
   function tracking() { try { return JSON.parse(load("oasis_src") || "{}"); } catch (e) { return {}; } }
-  function pixel(ev, data) { try { if (window.fbq) window.fbq("track", ev, data || {}); } catch (e) {} }
+  // Every funnel event goes to Meta (fbq) and to GTM's dataLayer under its GA4 name.
+  var GA4 = { Search: "search", ViewContent: "view_item", InitiateCheckout: "begin_checkout", Lead: "generate_lead", Purchase: "purchase" };
+  function pixel(ev, data) {
+    data = data || {};
+    try { if (window.fbq) window.fbq("track", ev, data); } catch (e) {}
+    try {
+      window.dataLayer = window.dataLayer || [];
+      var ids = data.content_ids || [];
+      window.dataLayer.push({ event: GA4[ev] || ev, booking: {
+        value: data.value, currency: data.currency, villa: ids.join(","),
+        checkin: data.checkin_date, checkout: data.checkout_date,
+        adults: data.num_adults, children: data.num_children
+      } });
+    } catch (e) {}
+  }
 
   // ---------- views ----------
   var VIEWS = ["start", "loading", "results", "villa", "details", "confirmed", "transfer"];
