@@ -234,3 +234,8 @@ img { display: block; max-width: 100%; }
   .view.dark .wrap { padding-top: 48px; }
   #view-villa aside .pcard .btn-block, #view-villa aside .note-c { display: none; }
 }
+
+/* fine print under prices, and the small footer */
+.fine { margin: 2px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
+.fine a, .site-foot a, .check a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.site-foot { max-width: 1100px; margin: 0 auto; padding: 28px 16px 120px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); text-align: center; }

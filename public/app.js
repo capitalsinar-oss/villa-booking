@@ -417,6 +417,19 @@
     return '<p class="pd-title">Price details</p><dl class="pd">' + rows +
       '<div class="total"><dt>Total (' + esc(q.currency || "IDR") + ")</dt><dd>" + idr(q.total, q.currency) + "</dd></div></dl>";
   }
+  // Fine print under every price: the cancellation terms from the live quote,
+  // plus Balinest's booking terms (the booking is made on their Guesty account).
+  var TERMS_URL = "https://book.balinestvillas.com/en/terms";
+  var PRIVACY_URL = "https://book.balinestvillas.com/en/privacy-policy";
+  function finePrint(q) {
+    var fee = Number(q.cancellationFee);
+    var nonRef = fee >= 100 || /super_strict|non_?refundable/i.test(q.cancellationPolicy || "");
+    var c = nonRef ? "Non-refundable: if you cancel, the full amount is charged."
+      : (fee > 0 ? "If you cancel, " + fee + "% of the total is charged." : "");
+    return '<p class="fine">' + (c ? esc(c) + " " : "") +
+      '<a href="' + TERMS_URL + '" target="_blank" rel="noopener">Terms</a> · ' +
+      '<a href="' + PRIVACY_URL + '" target="_blank" rel="noopener">Privacy</a></p>';
+  }
   function openVilla(key) {
     var v = VILLAS[key], q = state.quotes[key], n = nightsOf(state.search);
     state.villa = key;
@@ -431,7 +444,7 @@
       '<div><p class="big">' + idr(q.total, q.currency) + '</p><p class="sub">for ' + n + " nights · non-refundable</p></div>" +
       stayBox() +
       '<button type="button" class="btn btn-block" data-go="details">Continue</button>' +
-      '<p class="note-c">You won’t be charged yet</p>' + breakdown(q);
+      '<p class="note-c">You won’t be charged yet</p>' + breakdown(q) + finePrint(q);
     $("#villa-dock").innerHTML = '<div class="what"><span class="a">' + idr(q.total, q.currency) + '</span><span class="b">' + shortRange(state.search) + " · non-refundable</span></div>" +
       '<button type="button" class="btn" data-go="details">Continue</button>';
     show("villa");
@@ -465,7 +478,7 @@
     renderCounts();
     $("#details-pcard").innerHTML =
       '<div class="mini"><div class="ph" style="background-image:url(\'' + v.photos[0] + '\')"></div><div><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow.split(" · ")[0]) + '</p><p class="vname">' + esc(v.name) + "</p></div></div>" +
-      stayBox() + breakdown(q) + '<p class="small muted">Non-refundable. Charged in ' + esc(q.currency || "IDR") + ".</p>";
+      stayBox() + breakdown(q) + finePrint(q);
     $("#pay-onpage").hidden = !onPage();
     $("#pay-handoff").hidden = onPage();
     $("#pay-btn").textContent = onPage() ? "Confirm and pay " + idr(q.total, q.currency) : "Continue to secure payment";
