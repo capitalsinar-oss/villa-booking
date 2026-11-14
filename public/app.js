@@ -561,7 +561,20 @@
     s.onload = function () { phoneLib = window.libphonenumber; fillCountries(); checkWa(); };
     document.head.appendChild(s);
   }
+  // The guest's time zone says more about where they live than the browser
+  // language (many browsers are set to en-US everywhere), so try that first.
+  var TZ_COUNTRY = {
+    "Asia/Singapore": "SG", "Asia/Jakarta": "ID", "Asia/Makassar": "ID", "Asia/Jayapura": "ID", "Asia/Pontianak": "ID",
+    "Asia/Kuala_Lumpur": "MY", "Asia/Hong_Kong": "HK", "Asia/Shanghai": "CN", "Asia/Taipei": "TW", "Asia/Tokyo": "JP",
+    "Asia/Seoul": "KR", "Asia/Bangkok": "TH", "Asia/Manila": "PH", "Asia/Ho_Chi_Minh": "VN", "Asia/Kolkata": "IN",
+    "Asia/Dubai": "AE", "Europe/London": "GB", "Europe/Paris": "FR", "Europe/Berlin": "DE", "Europe/Amsterdam": "NL",
+    "Europe/Madrid": "ES", "Europe/Rome": "IT", "Europe/Zurich": "CH", "Europe/Stockholm": "SE", "Europe/Moscow": "RU",
+    "Australia/Sydney": "AU", "Australia/Melbourne": "AU", "Australia/Brisbane": "AU", "Australia/Perth": "AU", "Australia/Adelaide": "AU",
+    "Pacific/Auckland": "NZ", "America/New_York": "US", "America/Chicago": "US", "America/Denver": "US", "America/Los_Angeles": "US",
+    "America/Toronto": "CA", "America/Vancouver": "CA"
+  };
   function guessCountry() {
+    try { var tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (TZ_COUNTRY[tz]) return TZ_COUNTRY[tz]; } catch (e) {}
     var langs = navigator.languages || [navigator.language || ""];
     for (var i = 0; i < langs.length; i++) { var m = /-([A-Z]{2})$/i.exec(langs[i] || ""); if (m) return m[1].toUpperCase(); }
     return "ID";
