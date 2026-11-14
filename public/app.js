@@ -138,7 +138,34 @@
     $("#start-dock").hidden = !(v === "start" || v === "results");
     $("#bar").hidden = v === "confirmed" || v === "transfer" || v === "details";
     window.scrollTo(0, 0);
+    remember(v);
   }
+
+  // ---------- browser Back button walks back through the steps ----------
+  // Each step gets its own history entry, so Back on a phone or browser goes
+  // villa → results → start instead of leaving the site. Confirmed replaces
+  // its entry, so Back after paying never reopens the payment form.
+  var fromHistory = false;
+  function remember(v) {
+    if (fromHistory || v === "loading") return;
+    var st = { v: v, villa: state.villa };
+    var cur = history.state;
+    if (v === "start" || v === "results" || v === "confirmed" || (cur && cur.v === v)) history.replaceState(st, "", location.href);
+    else history.pushState(st, "", location.href);
+  }
+  window.addEventListener("popstate", function (e) {
+    var st = e.state || {};
+    fromHistory = true;
+    try {
+      if (state.booking) { show("confirmed"); }               // already booked: stay on the confirmation
+      else if (st.v === "villa" && st.villa && state.quotes[st.villa]) openVilla(st.villa);
+      else if (st.v === "details" && state.villa && state.quotes[state.villa]) openDetails();
+      else if (st.v === "transfer") show("transfer");
+      else if (Object.keys(state.quotes).length) show("results");
+      else show("start");
+    } finally { fromHistory = false; }
+    if (state.booking) history.pushState({ v: "confirmed" }, "", location.href);
+  });
   document.addEventListener("click", function (e) {
     var go = e.target.closest("[data-go]");
     if (go) { e.preventDefault(); var v = go.getAttribute("data-go"); if (v === "details") openDetails(); else show(v); }
