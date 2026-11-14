@@ -239,3 +239,11 @@ img { display: block; max-width: 100%; }
 .fine { margin: 2px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
 .fine a, .site-foot a, .check a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .site-foot { max-width: 1100px; margin: 0 auto; padding: 28px 16px 120px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); text-align: center; }
+
+/* WhatsApp: country code + number, with a tick for a valid mobile number */
+.phone { position: relative; display: grid; grid-template-columns: minmax(0, 132px) minmax(0, 1fr); }
+.phone select { border-right: 0 !important; padding-right: 4px; text-overflow: ellipsis; }
+.phone input { padding-right: 36px; }
+.wa-ok { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #2E7D4F; font-weight: 700; font-size: 17px; }
+.wa-hint { min-height: 1em; font-size: 12px; color: #2E7D4F; }
+.wa-hint.bad { color: #8A3B1E; }

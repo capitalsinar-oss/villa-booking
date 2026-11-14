@@ -459,7 +459,7 @@
     var html = "";
     for (var i = 0; i < state.children; i++) {
       var opts = '<option value="">Age</option>';
-      for (var a = 0; a <= 17; a++) opts += '<option value="' + a + '"' + (String(state.ages[i]) === String(a) ? " selected" : "") + ">" + (a === 0 ? "Under 1" : a) + "</option>";
+      for (var a = 0; a <= 12; a++) opts += '<option value="' + a + '"' + (String(state.ages[i]) === String(a) ? " selected" : "") + ">" + (a === 0 ? "Under 1" : a) + "</option>";
       html += '<label class="age">Child ' + (i + 1) + '<select data-age="' + i + '">' + opts + "</select></label>";
     }
     box.innerHTML = html;
@@ -476,6 +476,7 @@
   function openDetails() {
     var v = VILLAS[state.villa], q = state.quotes[state.villa];
     renderCounts();
+    loadPhoneLib();
     $("#details-pcard").innerHTML =
       '<div class="mini"><div class="ph" style="background-image:url(\'' + v.photos[0] + '\')"></div><div><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow.split(" · ")[0]) + '</p><p class="vname">' + esc(v.name) + "</p></div></div>" +
       stayBox() + breakdown(q) + finePrint(q);
@@ -526,6 +527,7 @@
     for (var i = 0; i < state.children; i++) if (state.ages[i] === "" || state.ages[i] == null) { showError("Please add each child's age."); return false; }
     if (!form.firstName.value.trim() || !form.lastName.value.trim()) { showError("Please add the lead guest's first and last name."); return false; }
     var email = form.email.value.trim(), wa = form.whatsapp.value.trim();
+    if (wa && !waNumber()) { showError("That WhatsApp number doesn't look right for the country chosen."); return false; }
     if (!email && !wa) { showError("Please give us an email or a WhatsApp number."); return false; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError("That email address doesn't look right."); return false; }
     if (!form.agree.checked) { showError("Please tick the box to confirm the booking is non-refundable."); return false; }
@@ -539,7 +541,7 @@
       adults: state.adults, children: state.children, childAges: state.ages.slice(0, state.children),
       total: q.total, currency: q.currency,
       firstName: form.firstName.value.trim(), lastName: form.lastName.value.trim(),
-      email: form.email.value.trim(), whatsapp: form.whatsapp.value.trim(), occasion: form.occasion.value.trim(),
+      email: form.email.value.trim(), whatsapp: waNumber() || form.whatsapp.value.trim(), occasion: form.occasion.value.trim(),
       mode: mode, tracking: tracking()
     };
   }
@@ -547,17 +549,73 @@
     return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
   }
+  // ---------- WhatsApp: country code + number, checked as a real mobile number ----------
+  // Uses libphonenumber's mobile metadata (served from /vendor). It can tell a valid
+  // mobile number for the country; nobody outside WhatsApp can tell if a number uses it.
+  var phoneLib = null;
+  function loadPhoneLib() {
+    if (phoneLib || window.__phoneLoading) return;
+    window.__phoneLoading = true;
+    var s = document.createElement("script");
+    s.src = "vendor/libphonenumber-mobile.js?v=1.10.60";
+    s.onload = function () { phoneLib = window.libphonenumber; fillCountries(); checkWa(); };
+    document.head.appendChild(s);
+  }
+  function guessCountry() {
+    var langs = navigator.languages || [navigator.language || ""];
+    for (var i = 0; i < langs.length; i++) { var m = /-([A-Z]{2})$/i.exec(langs[i] || ""); if (m) return m[1].toUpperCase(); }
+    return "ID";
+  }
+  function flag(cc) { return cc.replace(/./g, function (c) { return String.fromCodePoint(127397 + c.charCodeAt(0)); }); }
+  function fillCountries() {
+    var sel = form.waCountry, names = null;
+    try { names = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) {}
+    var list = phoneLib.getCountries().map(function (cc) {
+      return { cc: cc, code: phoneLib.getCountryCallingCode(cc), name: names ? names.of(cc) : cc };
+    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var want = sel.value || guessCountry();
+    sel.innerHTML = list.map(function (c) {
+      return '<option value="' + c.cc + '"' + (c.cc === want ? " selected" : "") + ">" + flag(c.cc) + " +" + c.code + "  " + esc(c.name) + "</option>";
+    }).join("");
+  }
+  function waNumber() {
+    var raw = form.whatsapp.value.trim();
+    if (!raw || !phoneLib) return "";
+    try {
+      var p = phoneLib.parsePhoneNumber(raw, form.waCountry.value || undefined);
+      return p && p.isValid() ? p.number : "";
+    } catch (e) { return ""; }
+  }
+  function checkWa() {
+    var raw = form.whatsapp.value.trim(), ok = !!waNumber();
+    $("#wa-ok").hidden = !ok;
+    var hint = $("#wa-hint");
+    hint.textContent = !raw ? "" : ok ? "Valid mobile number" : (phoneLib ? "Check the number for the country chosen" : "");
+    hint.className = "wa-hint" + (raw && !ok && phoneLib ? " bad" : "");
+    // A pasted +country number picks its own country.
+    if (phoneLib && /^\+/.test(raw)) {
+      try {
+        var p = phoneLib.parsePhoneNumber(raw);
+        if (p && p.country && p.isValid()) { form.waCountry.value = p.country; form.whatsapp.value = p.formatNational(); }
+      } catch (e) {}
+    }
+  }
+  form.whatsapp.addEventListener("input", checkWa);
+  form.waCountry.addEventListener("change", checkWa);
+
   function handoffUrl() {
     var q = state.quotes[state.villa], s = state.search;
     var p = new URLSearchParams({ minOccupancy: String(totalGuests()), checkIn: s.checkin, checkOut: s.checkout, adults: String(totalGuests()) });
-    return state.config.checkoutBase + "/" + q.listingId + "/checkout?" + p.toString();
+    // Balinest's checkout page only opens after their villa page has loaded the
+    // quote, so we land guests on the villa page with dates filled; they press Book now.
+    return state.config.checkoutBase + "/" + q.listingId + "?" + p.toString();
   }
   function book(ccToken) {
     var q = state.quotes[state.villa];
     var btn = $("#pay-btn"); btn.disabled = true; btn.textContent = "Confirming…";
     return postJSON("/api/book", {
       quoteId: q.quoteId, ratePlanId: q.ratePlanId, ccToken: ccToken,
-      guest: { firstName: form.firstName.value.trim(), lastName: form.lastName.value.trim(), email: form.email.value.trim(), phone: form.whatsapp.value.trim() },
+      guest: { firstName: form.firstName.value.trim(), lastName: form.lastName.value.trim(), email: form.email.value.trim(), phone: waNumber() || form.whatsapp.value.trim() },
       tracking: tracking()
     }).then(function (res) {
       if (!res.ok) throw new Error(res.j.code || res.j.error || "booking_failed");
@@ -625,7 +683,7 @@
     postJSON("/api/transfer", {
       confirmationCode: b.confirmationCode, want: want, flight: tForm.flight.value, landing: tForm.landing.value,
       bags: tForm.bags.value, boards: tForm.boards.value, guests: totalGuests(), cars: carsNeeded(),
-      contact: form.whatsapp.value.trim() || form.email.value.trim()
+      contact: waNumber() || form.whatsapp.value.trim() || form.email.value.trim()
     }).catch(function () {});
     var done = $("#transfer-done");
     done.textContent = want ? "Thank you. We’ll confirm the pickup with Pak Nyoman and send you his number." : "No problem. If you change your mind, just message us.";

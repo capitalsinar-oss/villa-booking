@@ -164,7 +164,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             <p class="small muted">Email or WhatsApp, at least one. We send your confirmation and arrival details there.</p>
             <div class="grid2">
               <label class="field">Email<input type="email" name="email" autocomplete="email"></label>
-              <label class="field">WhatsApp number<input type="tel" name="whatsapp" autocomplete="tel" placeholder="+65 …"></label>
+              <div class="field"><span id="wa-label">WhatsApp number</span>
+                <div class="phone">
+                  <select name="waCountry" aria-label="Country code"></select>
+                  <input type="tel" name="whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="Mobile number" aria-labelledby="wa-label" aria-describedby="wa-hint">
+                  <span class="wa-ok" id="wa-ok" hidden aria-hidden="true">✓</span>
+                </div>
+                <span class="wa-hint" id="wa-hint"></span>
+              </div>
             </div>
           </section>
 
@@ -176,7 +183,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               <div id="card-el" class="cardfield"></div>
             </div>
             <div id="pay-handoff" hidden>
-              <p class="small">After you confirm, you go to our booking partner's secure page to pay by card. Your booking is made with Balinest Villas, who look after the house for us.</p>
+              <p class="small">Next, you go to the secure booking page of Balinest Villas, who look after the house for us, with your villa and dates already chosen. Press <b>Book now</b> there to pay by card.</p>
             </div>
             <div class="powered"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Payments processed securely by <b>Stripe</b>. Your card goes straight to Stripe; we never see or store it.</span></div>
             <label class="check"><input type="checkbox" name="agree" required><span>I understand this booking is <b>non-refundable</b>, and I agree to the <a href="https://book.balinestvillas.com/en/terms" target="_blank" rel="noopener">booking terms</a>.</span></label>
