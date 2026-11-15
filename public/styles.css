@@ -114,7 +114,7 @@ img { display: block; max-width: 100%; }
 .dots { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 2; display: flex; gap: 6px; }
 .dots span { width: 6px; height: 6px; border-radius: 99px; background: rgba(255,255,255,0.55); }
 .dots span.on { background: #fff; }
-.all-photos { position: absolute; right: 14px; bottom: 12px; z-index: 2; font: 400 13px/1 var(--serif); background: rgba(252,248,237,0.95); padding: 9px 12px; text-decoration: none; }
+.all-photos { border: 0; cursor: pointer; color: var(--ink); position: absolute; right: 14px; bottom: 12px; z-index: 2; font: 400 13px/1 var(--serif); background: rgba(252,248,237,0.95); padding: 9px 12px; text-decoration: none; }
 
 /* ---------- villa + price ---------- */
 .split { display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; }
@@ -247,3 +247,22 @@ img { display: block; max-width: 100%; }
 .wa-ok { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #2E7D4F; font-weight: 700; font-size: 17px; }
 .wa-hint { min-height: 1em; font-size: 12px; color: #2E7D4F; }
 .wa-hint.bad { color: #8A3B1E; }
+
+/* full-screen photo gallery */
+.gallery { position: fixed; inset: 0; z-index: 100; background: #171713; color: #FCF8ED; display: flex; flex-direction: column; }
+.gallery[hidden] { display: none; }
+.gallery-head { display: flex; align-items: center; gap: 16px; padding: 12px 16px; }
+.gallery-title { margin: 0; font: 400 20px/1.2 var(--serif); flex: 1; }
+.gallery-count { font-size: 13px; opacity: .75; }
+.gallery .icon-btn { color: #FCF8ED; }
+.gallery-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 0 16px 24px; }
+.gallery-stage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.gallery-stage .arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+.gallery-stage .arrow.l { left: 16px; } .gallery-stage .arrow.r { right: 16px; }
+
+/* groups of 7-12: both forest villas */
+.group-box { background: var(--paper); padding: 24px; margin: 0 0 28px; display: grid; gap: 8px; justify-items: start; }
+.group-box p { margin: 0; }
+.gb-title { font: 400 26px/1.2 var(--serif); }
+.gb-price { font-weight: 700; font-size: 20px; }
+.gallery .gallery-stage .arrow { display: inline-flex; margin-top: 0; color: var(--ink); }

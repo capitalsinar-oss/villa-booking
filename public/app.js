@@ -48,6 +48,7 @@
     jati: ["jati", "palem", "kapuk", "ceylon"],
     ceylon: ["ceylon", "palem", "kapuk", "jati"]
   };
+  Object.keys(VILLAS).forEach(function (k) { VILLAS[k].key = k; });
   var VILLA_LABEL = { forest: "Forest villas", jati: "Oasis Jati", ceylon: "Ceylon Residences", all: "All villas" };
 
   var ICON = {
@@ -227,6 +228,7 @@
   function checkDates(s) {
     if (!s.checkin || !s.checkout) return "Please choose both dates.";
     if (s.checkout <= s.checkin) return "Your leaving date needs to be after your arrival.";
+    if (s.checkin < iso(new Date())) return "Your arrival date has already passed. Please choose a date from today.";
     return null;
   }
   function fillForms(s) {
@@ -281,7 +283,10 @@
     state.search = s;
     fillForms(s);
     show("loading");
-    var q = new URLSearchParams({ checkin: s.checkin, checkout: s.checkout, guests: String(totalGuests()) });
+    // A party bigger than one forest villa (6) is looked up as two halves, so we can
+    // offer Palem and Kapuk together instead of reporting them as taken.
+    var g = totalGuests(), perVilla = g > 6 ? Math.min(6, Math.ceil(g / 2)) : g;
+    var q = new URLSearchParams({ checkin: s.checkin, checkout: s.checkout, guests: String(perVilla) });
     history.replaceState(null, "", "?" + new URLSearchParams(Object.assign({}, paramsToKeep(), { checkin: s.checkin, checkout: s.checkout, adults: state.adults, children: state.children, villa: s.villa })).toString());
     fetch("/api/search?" + q.toString())
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
@@ -320,11 +325,38 @@
       '<button type="button" class="arrow l" aria-label="Previous photo">' + ICON.left + "</button>" +
       '<button type="button" class="arrow r" aria-label="Next photo">' + ICON.right + "</button>" +
       '<div class="dots" aria-hidden="true">' + v.photos.map(function (_, i) { return '<span class="' + (i ? "" : "on") + '"></span>'; }).join("") + "</div>" +
-      '<a class="all-photos" href="' + v.link + '" target="_blank" rel="noopener">See all photos</a></div>';
+      '<button type="button" class="all-photos" data-gallery="' + v.key + '">See all photos</button></div>';
   }
+  // Full-screen photo gallery, so guests never leave the booking page to see photos.
+  function openGallery(key, start) {
+    var v = VILLAS[key], i = start || 0, g = $("#gallery");
+    function draw() {
+      $("#gallery-img").src = v.photos[i];
+      $("#gallery-img").alt = v.name + ", photo " + (i + 1) + " of " + v.photos.length;
+      $("#gallery-count").textContent = (i + 1) + " / " + v.photos.length;
+    }
+    $("#gallery-title").textContent = v.name;
+    g.onclick = function (e) {
+      var t = e.target.closest("[data-g]"); if (!t) return;
+      var a = t.getAttribute("data-g");
+      if (a === "close") return closeGallery();
+      i = (i + (a === "next" ? 1 : -1) + v.photos.length) % v.photos.length; draw();
+    };
+    g.onkeydown = function (e) {
+      if (e.key === "Escape") closeGallery();
+      if (e.key === "ArrowRight") { i = (i + 1) % v.photos.length; draw(); }
+      if (e.key === "ArrowLeft") { i = (i - 1 + v.photos.length) % v.photos.length; draw(); }
+    };
+    draw(); g.hidden = false; document.body.style.overflow = "hidden";
+    $("#gallery [data-g=close]").focus();
+  }
+  function closeGallery() { $("#gallery").hidden = true; document.body.style.overflow = ""; }
+
   function wireCarousels(root) {
     $all(".photos", root).forEach(function (p) {
       var track = $(".track", p), dots = $all(".dots span", p);
+      var gb = $("[data-gallery]", p);
+      if (gb) gb.addEventListener("click", function () { openGallery(gb.getAttribute("data-gallery"), Math.round(track.scrollLeft / Math.max(1, track.clientWidth))); });
       function idx() { return Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); }
       function go(i) { track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }); }
       $(".arrow.l", p).addEventListener("click", function () { go(Math.max(0, idx() - 1)); });
@@ -334,7 +366,7 @@
   }
   function askLink(key) {
     var s = state.search, v = VILLAS[key];
-    var text = "Hi Oasis, are " + v.name + "'s dates " + shortRange(s) + " " + d(s.checkout).getFullYear() + " free? We are " + guestsText() + ".";
+    var text = "Hi Oasis, are " + shortRange(s) + " " + d(s.checkout).getFullYear() + " free at " + v.name + "? We are " + guestsText() + ".";
     return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text);
   }
 
@@ -345,8 +377,8 @@
       foot = '<div><p class="unavail">Online booking for ' + esc(v.name) + ' opens soon.</p><p class="per">Message us and we’ll check your dates.</p></div>' +
         '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask about these dates</a>';
     } else if (totalGuests() > v.max) {
-      foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">Try both forest villas side by side, or message us.</p></div>' +
-        '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask us</a>';
+      foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">' + (v.dot === "forest" ? "For your group, see Palem and Kapuk together above." : "Message us and we’ll help with your group.") + '</p></div>' +
+        (v.dot === "forest" ? "" : '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask us</a>');
     } else if (q && q.available) {
       foot = '<div><p class="price">' + idr(q.total, q.currency) + '</p><p class="per">' + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
         '<button type="button" class="btn" data-choose="' + key + '">Choose ' + esc(v.name.replace("Oasis ", "")) + "</button>";
@@ -364,21 +396,48 @@
       '<div class="price-row">' + foot + "</div></div></article>";
   }
 
+  // Groups of 7–12: both forest villas, booked together with us.
+  function groupHtml(open, g) {
+    var s = state.search, n = nightsOf(s);
+    if (g > 12 || open.length < 2) {
+      return '<div class="group-box"><p><b>' + (g > 12 ? "Our two forest villas sleep up to 12 together." : "Only one forest villa is free for these dates, and each sleeps up to 6.") +
+        '</b> Message us and we’ll help with your group.</p><a class="btn btn-line" href="' + groupLink(open, g, 0) + '" target="_blank" rel="noopener">Message us</a></div>';
+    }
+    var a = state.quotes.palem, b = state.quotes.kapuk, total = a.total + b.total;
+    return '<div class="group-box"><p class="label">For your group of ' + g + '</p>' +
+      '<p class="gb-title">Oasis Palem and Oasis Kapuk, together</p>' +
+      '<p class="small">Two three-bedroom villas in the same Oasis enclave, up to 12 guests. ' + n + (n === 1 ? " night" : " nights") + ', non-refundable.</p>' +
+      '<p class="gb-price">' + idr(total, a.currency) + ' <span class="small muted">total for both (Palem ' + idr(a.total, a.currency) + ' + Kapuk ' + idr(b.total, b.currency) + ')</span></p>' +
+      '<a class="btn" href="' + groupLink(open, g, total) + '" target="_blank" rel="noopener">Book both with us on WhatsApp</a></div>';
+  }
+  function groupLink(open, g, total) {
+    var s = state.search;
+    var text = "Hi Oasis, we'd like to book " + (open.length >= 2 ? "Palem and Kapuk together" : "the forest villas") + " for " + shortRange(s) + " " + d(s.checkout).getFullYear() + ". We are " + guestsText() + "." +
+      (total ? " The page showed " + idr(total, state.quotes.palem.currency) + " for both." : "");
+    return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text);
+  }
+
   function renderResults() {
     var s = state.search, order = ORDER[s.villa] || ORDER.forest;
-    var free = ["palem", "kapuk"].filter(function (k) { var q = state.quotes[k]; return q && q.available && totalGuests() <= VILLAS[k].max; });
+    var g = totalGuests(), big = g > 6;
+    var open = ["palem", "kapuk"].filter(function (k) { var q = state.quotes[k]; return q && q.available; });
+    var free = big ? [] : open;
     var title;
     if (s.villa === "jati") title = "Oasis Jati for your dates";
     else if (s.villa === "ceylon") title = "Ceylon Residences for your dates";
-    else if (free.length === 2) title = "Both forest villas are free";
+    else if (big && g <= 12 && open.length === 2) title = "Palem and Kapuk together sleep " + g;
+    else if (big) title = "Each forest villa sleeps up to 6";
+    else if (free.length === 2) title = s.villa === "all" ? "Both forest villas are free, and here are our other houses" : "Both forest villas are free";
     else if (free.length === 1) title = VILLAS[free[0]].name + " is free for your dates";
     else title = "The forest villas are taken for those dates";
     $("#results-title").textContent = title;
-    $("#results-sub").textContent = longRange(s) + " · " + nightsOf(s) + " nights · " + guestsText();
+    var nn = nightsOf(s);
+    $("#results-sub").textContent = longRange(s) + " · " + nn + (nn === 1 ? " night" : " nights") + " · " + guestsText();
     $("[data-pill-text]").textContent = shortRange(s) + " · " + totalGuests() + " guests · " + VILLA_LABEL[s.villa];
     $("[data-pill-dot]").className = "dot " + (s.villa === "jati" ? "jati" : s.villa === "ceylon" ? "ceylon" : "forest");
 
     var html = "", forestShown = false;
+    if (big && s.villa !== "jati" && s.villa !== "ceylon") html += groupHtml(open, g);
     order.forEach(function (key, i) {
       var isForest = key === "palem" || key === "kapuk";
       if (i > 0) {
@@ -441,7 +500,7 @@
     $("#villa-facts").innerHTML = factsHtml(v.facts);
     $("#villa-body").textContent = v.body;
     $("#villa-pcard").innerHTML =
-      '<div><p class="big">' + idr(q.total, q.currency) + '</p><p class="sub">for ' + n + " nights · non-refundable</p></div>" +
+      '<div><p class="big">' + idr(q.total, q.currency) + '</p><p class="sub">for ' + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
       stayBox() +
       '<button type="button" class="btn btn-block" data-go="details">Continue</button>' +
       '<p class="note-c">You won’t be charged yet</p>' + breakdown(q) + finePrint(q);

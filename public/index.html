@@ -31,9 +31,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <nav class="nav d-only" aria-label="Main">
       <a href="https://www.oasisuluwatu.com/forest-villas">Villas</a>
       <a href="https://www.oasisuluwatu.com/partners">Partners</a>
-      <a href="https://www.oasisuluwatu.com">Design &amp; Build</a>
-      <a href="https://www.oasisuluwatu.com">Investor</a>
-      <a href="https://www.oasisuluwatu.com">Contact</a>
+      <a href="https://www.oasisuluwatu.com/architecture">Design &amp; Build</a>
+      <a href="https://www.oasisuluwatu.com/investor">Investor</a>
+      <a href="https://wa.me/6281236676828" target="_blank" rel="noopener">Contact</a>
     </nav>
     <button type="button" class="m-book m-only" data-open-sheet>Book</button>
     <span class="d-only head-spacer"></span>
@@ -239,6 +239,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <footer class="site-foot">
   <p>Reservations are managed by Balinest Villas and processed through the Guesty booking system (Guesty, Inc.). · <a href="https://book.balinestvillas.com/en/terms" target="_blank" rel="noopener">Terms</a> · <a href="https://book.balinestvillas.com/en/privacy-policy" target="_blank" rel="noopener">Privacy</a></p>
 </footer>
+
+<!-- Full-screen photo gallery -->
+<div class="gallery" id="gallery" role="dialog" aria-modal="true" aria-labelledby="gallery-title" hidden>
+  <div class="gallery-head">
+    <h2 id="gallery-title" class="gallery-title"></h2>
+    <span id="gallery-count" class="gallery-count"></span>
+    <button type="button" class="icon-btn" data-g="close" aria-label="Close photos">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="gallery-stage">
+    <button type="button" class="arrow l" data-g="prev" aria-label="Previous photo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <img id="gallery-img" alt="">
+    <button type="button" class="arrow r" data-g="next" aria-label="Next photo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+</div>
 
 <!-- Phone: docked bar and the booking sheet -->
 <div class="m-dock m-only" id="start-dock">
