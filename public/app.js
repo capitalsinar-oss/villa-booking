@@ -34,11 +34,11 @@
       photos: wixSet(["45e262c2aa554dae95063c207e20e539", "4c137e0ddcf9490fad2946d84824e935", "d6478c6a13e8488ba029cdd282036efe", "663135cd6dcc42ce8ebb6af7f867df56", "c45897d7e7cc4fcd983e0da65daa5f8b"])
     },
     ceylon: {
-      name: "Ceylon Residences", dot: "ceylon", eyebrow: "Unit 4 · Suluban, Uluwatu", bookable: false, max: 4,
+      name: "Ceylon Residences", dot: "ceylon", eyebrow: "Unit 4 · Suluban, Uluwatu", bookable: true, max: 4,
       sub: "Ocean view, sauna, ice bath",
       body: "Two king bedrooms, a private pool among the greenery, and your own rooftop with a sauna, ice bath and ocean view, where the Uluwatu sunset glows pink and gold each evening.",
       where: "Ceylon is in <b>Suluban, Uluwatu</b>, not at Oasis in Pecatu. A separate residence with its own team.",
-      facts: [2, "2.5", 4], link: "https://www.airbnb.com/rooms/1655454682482668727",
+      facts: [2, "2.5", 4], link: "",
       photos: ["3c84d0c6-0de5-4298-9163-f89ee4f45799", "05189a7e-6a7b-4be7-8ef5-c10b58ae98eb", "d83e3a4a-ee87-4d24-ac6e-b839c89abf2e", "507c5137-4b25-43a4-b1e6-f1c7d5b8fe35", "62d2377e-ef94-42c4-b3c5-96c376077095"].map(abnb)
     }
   };

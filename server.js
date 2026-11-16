@@ -47,6 +47,12 @@ const VILLAS = [
     listingId: "69b67cfa3e48290011c5d1b2",
     group: "forest",
   },
+  {
+    key: "ceylon",
+    name: "Ceylon Residences",
+    listingId: "69cf268b4d255a0013ac88d2",
+    group: "ceylon",
+  },
 ];
 
 // ---------------------------------------------------------------------------
