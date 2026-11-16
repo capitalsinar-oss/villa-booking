@@ -27,7 +27,7 @@
       photos: wixSet(["568a684ab4514aba98c6b6f02dae6370", "416afe75994b496485192590d6e85c3f", "f022ec0e63c34e69a330d3faec85487f", "18e44769d4ce488a914733fa8c6abcb0", "9261c28f97984bf2a40d98b76d0c77ed"])
     },
     jati: {
-      name: "Oasis Jati", dot: "jati", eyebrow: "A different house · Pecatu, Uluwatu", bookable: false, max: 6,
+      name: "Oasis Jati", dot: "jati", eyebrow: "A different house · Pecatu, Uluwatu", bookable: true, max: 6,
       sub: "A house for slower days",
       body: "A house shaped almost entirely from solid teak, at the end of a quiet Pecatu lane. Named for the twenty teak trees that stood on the plot, lifted through construction and replanted into the finished home. Designed by Sidarta & Sandjaja, interiors by Michelle Arderia of BUD Studio.",
       facts: [3, 3, 6], link: "https://www.oasisuluwatu.com/daysatjati",

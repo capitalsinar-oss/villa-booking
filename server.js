@@ -48,6 +48,12 @@ const VILLAS = [
     group: "forest",
   },
   {
+    key: "jati",
+    name: "Jati",
+    listingId: "6ab3478a1387f800372ef40d",
+    group: "jati",
+  },
+  {
     key: "ceylon",
     name: "Ceylon Residences",
     listingId: "69cf268b4d255a0013ac88d2",
