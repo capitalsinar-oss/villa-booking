@@ -767,7 +767,7 @@
 
   // ---------- start ----------
   $(".start-photo").style.backgroundImage = "url('" + wix("568a684ab4514aba98c6b6f02dae6370", 1800, 1100) + "')";
-  fetch("/api/config").then(function (r) { return r.json(); }).then(function (c) { state.config = Object.assign(state.config, c || {}); }).catch(function () {});
+  fetch("/api/config" + (/[?&]paytest=1/.test(location.search) ? "?test=1" : "")).then(function (r) { return r.json(); }).then(function (c) { state.config = Object.assign(state.config, c || {}); }).catch(function () {});
 
   (function initFromUrl() {
     var p = new URLSearchParams(location.search);
