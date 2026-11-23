@@ -382,14 +382,24 @@
     sheet.hidden = false; document.body.style.overflow = "hidden";
     if (!quiet) $("[data-close-sheet]").focus();
   }
-  function closeSheet() {
+  // A guest who came from oasisuluwatu.com and closes the date picker before searching
+  // is taken back to the page they came from, not left on the booking page (Jayne, 23 Nov 2026).
+  var cameFromSite = /(^|\.)oasisuluwatu\.com$/.test((function () { try { return new URL(document.referrer).hostname; } catch (e) { return ""; } })()) &&
+    !/^book\./.test((function () { try { return new URL(document.referrer).hostname; } catch (e) { return ""; } })());
+  if (/^site/.test(new URLSearchParams(location.search).get("from") || "")) cameFromSite = true;
+  function leaveToSite() {
+    if (document.referrer && history.length > 1 && /oasisuluwatu\.com/.test(document.referrer) && !/book\.oasisuluwatu/.test(document.referrer)) history.back();
+    else location.href = "https://www.oasisuluwatu.com/";
+  }
+  function closeSheet(byUser) {
     if (sheet.hidden) return;
+    if (byUser && cameFromSite && !state.search) { leaveToSite(); return; }
     sheet.hidden = true; document.body.style.overflow = "";
     if (lastFocus) lastFocus.focus();
   }
   document.addEventListener("click", function (e) {
     if (e.target.closest("[data-open-sheet]")) { e.preventDefault(); openSheet(); }
-    if (e.target.closest("[data-close-sheet]")) { e.preventDefault(); closeSheet(); }
+    if (e.target.closest("[data-close-sheet]")) { e.preventDefault(); closeSheet(true); }
   });
   $("#sheet-clear").addEventListener("click", function () {
     [bar, sheetForm].forEach(function (f) { f.checkin.value = ""; f.checkout.value = ""; });
