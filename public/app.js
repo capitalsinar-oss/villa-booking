@@ -37,7 +37,7 @@
       sub: "A house for slower days",
       body: "A house shaped almost entirely from solid teak, at the end of a quiet Pecatu lane. Named for the twenty teak trees that stood on the plot, lifted through construction and replanted into the finished home. Designed by Sidarta & Sandjaja, interiors by Michelle Arderia of BUD Studio.",
       facts: [3, 3, 6], link: "https://www.oasisuluwatu.com/daysatjati",
-      photos: wixSet([{ id: "45e262c2aa554dae95063c207e20e539", crop: "x_0,y_2200,w_2000,h_1600" }, "4c137e0ddcf9490fad2946d84824e935", "d6478c6a13e8488ba029cdd282036efe", "663135cd6dcc42ce8ebb6af7f867df56", "c45897d7e7cc4fcd983e0da65daa5f8b"])
+      photos: wixSet([{ id: "45e262c2aa554dae95063c207e20e539", crop: "x_0,y_2250,w_1800,h_1450" }, "4c137e0ddcf9490fad2946d84824e935", "d6478c6a13e8488ba029cdd282036efe", "663135cd6dcc42ce8ebb6af7f867df56", "c45897d7e7cc4fcd983e0da65daa5f8b"])
     },
     ceylon: {
       name: "Ceylon Residences", dot: "ceylon", eyebrow: "Unit 4 · Suluban, Uluwatu", bookable: true, max: 4,
@@ -143,7 +143,7 @@
     $all("li", steps).forEach(function (li) {
       if (li.dataset.step === STEP[v]) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
     });
-    $("#start-dock").hidden = !(v === "start" || v === "results");
+    $("#start-dock").hidden = v !== "start";
     $("#bar").hidden = v === "confirmed" || v === "transfer" || v === "details";
     window.scrollTo(0, 0);
     remember(v);
@@ -274,7 +274,7 @@
     for (var i = 0; i < lead; i++) h += "<span></span>";
     for (var dd = 1; dd <= days; dd++) {
       var di = iso(new Date(y, m, dd)), cls = ["cal-d"], dis = di < t;
-      var n = night(di, scope);
+      var n = di < t ? null : night(di, scope);
       if (n && !n.free) cls.push("full");
       if (picking === "in" && n && !n.free) dis = true;           // no villa free that night: can't arrive
       if (picking === "out" && di <= a) dis = di < a ? true : dis; // leaving must be after arriving
@@ -365,12 +365,12 @@
 
   // ---------- phone sheet ----------
   var sheet = $("#sheet"), lastFocus = null;
-  function openSheet() {
+  function openSheet(quiet) {
     lastFocus = document.activeElement;
     if (state.search) fillForms(state.search);
     loadAvail();
     sheet.hidden = false; document.body.style.overflow = "hidden";
-    $("[data-close-sheet]").focus();
+    if (!quiet) $("[data-close-sheet]").focus();
   }
   function closeSheet() {
     if (sheet.hidden) return;
@@ -696,7 +696,12 @@
     if (!listingCache[key]) listingCache[key] = fetch("/api/listing/" + key).then(function (r) { if (!r.ok) throw 0; return r.json(); });
     return listingCache[key];
   }
-  function clean(line) { return line.replace(/^[^A-Za-z0-9(]+/, "").trim(); }
+  // Keep the item, drop the sales line after it ("Daily housekeeping to keep your villa spotless" → "Daily housekeeping").
+  function clean(line) {
+    var t = line.replace(/^[^A-Za-z0-9(]+/, "").trim();
+    t = t.split(/ to (?=[a-z])(?!temples)| for (?=[a-z])|, tailored/)[0];
+    return t.replace(/^(Plush|Expert|Exciting) /, "").replace(/^\w/, function (c) { return c.toUpperCase(); });
+  }
   // The listing's "access" text has two lists: free with every stay, and on request at a charge.
   function splitAccess(text) {
     var out = { incl: [], extra: [] }, cur = null;
@@ -866,6 +871,8 @@
     var list = COUNTRIES.filter(function (c) {
       return !q || c.name.toLowerCase().indexOf(q) >= 0 || c.code.indexOf(q) === 0 || c.cc.toLowerCase() === q;
     });
+    var MAIN = { "1": "US", "44": "GB", "7": "RU", "61": "AU", "47": "NO", "39": "IT", "358": "FI", "262": "RE", "590": "GP", "599": "CW", "212": "MA" };
+    if (/^\d+$/.test(q)) list.sort(function (a, b) { return (b.code === q) - (a.code === q) || (MAIN[b.code] === b.cc) - (MAIN[a.code] === a.cc) || a.name.localeCompare(b.name); });
     $("#cc-list").innerHTML = list.map(function (c) {
       return '<li role="option" tabindex="-1" data-cc="' + c.cc + '"' + (c.cc === form.waCountry.value ? ' aria-selected="true"' : "") + "><span>" + flag(c.cc) + " " + esc(c.name) + '</span><span class="muted">+' + c.code + "</span></li>";
     }).join("") || '<li class="muted">No match</li>';
@@ -1020,7 +1027,7 @@
       show("start");
       loadAvail();
       // On a phone, open straight to dates, guests and villa: no extra tap.
-      if (window.matchMedia("(max-width: 820px)").matches) openSheet();
+      if (window.matchMedia("(max-width: 820px)").matches) openSheet(true);
     }
   })();
 

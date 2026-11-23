@@ -349,3 +349,14 @@ img { display: block; max-width: 100%; }
 .crosses li::before { content: "✕"; margin-right: 8px; color: #8A3B1E; }
 .crosses { grid-template-columns: 1fr; }
 @media (max-width: 820px) { .terms > div { grid-template-columns: 1fr; gap: 2px; } .ticks { grid-template-columns: 1fr; } }
+/* phone sheet, tighter so the calendar shows straight away */
+.chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip span { padding: 8px 12px; font-size: 13.5px; white-space: nowrap; }
+.sheet-sec .k, .sheet-sec legend { margin-bottom: 0; }
+fieldset.sheet-sec { padding-top: 16px; }
+.sheet-guests { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.sheet-guests > .k { grid-column: 1 / -1; }
+.sheet-guests .prow { flex-direction: column; align-items: flex-start; gap: 4px; padding: 0; border: 0; font-size: 13px; color: var(--ink-soft); }
+.sheet-guests .stepper { width: 100%; }
+.sheet-sec { padding: 12px 0; }
