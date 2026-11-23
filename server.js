@@ -257,6 +257,64 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
+// Listing details for the page: house rules, amenities, check-in times and
+// minimum stay, straight from Guesty. Cached for 6 hours.
+const listingCache = new Map();
+app.get("/api/listing/:key", async (req, res) => {
+  const villa = VILLAS.find((v) => v.key === req.params.key);
+  if (!villa) return res.status(404).json({ error: "unknown_villa" });
+  const hit = listingCache.get(villa.key);
+  if (hit && hit.at > Date.now() - 6 * 3600 * 1000) return res.json(hit.data);
+  try {
+    const r = await guesty(`/api/listings/${villa.listingId}`);
+    if (!r.ok || !r.data) return res.status(502).json({ error: r.data?.error?.code || `HTTP_${r.status}` });
+    const l = r.data;
+    const data = {
+      key: villa.key,
+      title: l.title || null,
+      publicDescription: l.publicDescription || null,
+      amenities: l.amenities || [],
+      terms: l.terms || null,
+      checkInTime: l.defaultCheckInTime || null,
+      checkOutTime: l.defaultCheckOutTime || null,
+      accommodates: l.accommodates || null,
+      bedrooms: l.bedrooms || null,
+      bathrooms: l.bathrooms || null,
+      houseRules: l.houseRules || null,
+      taxes: l.taxes || null,
+      fields: Object.keys(l),
+    };
+    listingCache.set(villa.key, { at: Date.now(), data });
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: "listing_failed" });
+  }
+});
+
+// Day-by-day availability for the calendar (greys out booked nights and shows
+// minimum stays). Cached for 10 minutes per range.
+const calCache = new Map();
+app.get("/api/calendar", async (req, res) => {
+  const { from, to } = req.query;
+  if (!dateRe.test(from || "") || !dateRe.test(to || "")) return res.status(400).json({ error: "dates_invalid" });
+  const ck = from + "|" + to;
+  const hit = calCache.get(ck);
+  if (hit && hit.at > Date.now() - 10 * 60 * 1000) return res.json(hit.data);
+  try {
+    const out = {};
+    await Promise.all(VILLAS.map(async (v) => {
+      const r = await guesty(`/api/listings/${v.listingId}/calendar?from=${from}&to=${to}`);
+      const days = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.days) ? r.data.days : [];
+      out[v.key] = r.ok ? days.map((x) => ({ date: x.date, status: x.status, minNights: x.minNights, cta: x.cta, ctd: x.ctd })) : { error: r.data?.error?.code || `HTTP_${r.status}` };
+    }));
+    const data = { from, to, villas: out };
+    calCache.set(ck, { at: Date.now(), data });
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: "calendar_failed" });
+  }
+});
+
 app.post("/api/book", async (req, res) => {
   const { quoteId, ratePlanId, ccToken, guest, policy, tracking } = req.body || {};
   if (!quoteId || !ratePlanId || !ccToken) {
