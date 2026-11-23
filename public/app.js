@@ -950,6 +950,9 @@
     return postJSON("/api/book", {
       quoteId: q.quoteId, ratePlanId: q.ratePlanId, ccToken: ccToken,
       guest: { firstName: form.firstName.value.trim(), lastName: form.lastName.value.trim(), email: form.email.value.trim(), phone: waNumber() || form.whatsapp.value.trim() },
+      stay: { villa: state.villa, checkin: state.search.checkin, checkout: state.search.checkout, adults: state.adults, children: state.children,
+        childAges: state.ages.slice(0, state.children), occasion: form.occasion.value.trim(), whatsapp: waNumber() || form.whatsapp.value.trim(),
+        total: q.total, currency: q.currency },
       tracking: tracking()
     }).then(function (res) {
       if (!res.ok) throw new Error(res.j.code || res.j.error || "booking_failed");

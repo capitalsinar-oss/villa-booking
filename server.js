@@ -315,7 +315,7 @@ app.get("/api/calendar", async (req, res) => {
 });
 
 app.post("/api/book", async (req, res) => {
-  const { quoteId, ratePlanId, ccToken, guest, policy, tracking } = req.body || {};
+  const { quoteId, ratePlanId, ccToken, guest, policy, tracking, stay } = req.body || {};
   if (!quoteId || !ratePlanId || !ccToken) {
     return res.status(400).json({ error: "missing_quote_or_payment" });
   }
@@ -360,6 +360,10 @@ app.post("/api/book", async (req, res) => {
       })
     );
 
+    // Instant email to Balinest's reservations inbox with everything Guesty
+    // can't hold (special requests, children's ages, WhatsApp). Never blocks the guest.
+    sendBookingAlert({ data, guest, stay }).catch((e) => console.error("alert_failed:", e.message));
+
     res.json({
       reservationId: data._id,
       confirmationCode: data.confirmationCode,
@@ -371,6 +375,63 @@ app.post("/api/book", async (req, res) => {
   }
 });
 
+
+// ---------------------------------------------------------------------------
+// Booking alert email (Resend, from mail.oasisuluwatu.com)
+//   RESEND_API_KEY      sending-only key for mail.oasisuluwatu.com (Render env)
+//   BOOKING_ALERT_TO    who gets it; default Balinest reservations
+// ---------------------------------------------------------------------------
+const VILLA_NAMES = { palem: "Oasis Palem", kapuk: "Oasis Kapuk", jati: "Oasis Jati", ceylon: "Ceylon Residences" };
+function escHtml(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function niceDate(iso) {
+  const d = new Date(iso + "T00:00:00Z");
+  return isNaN(d) ? String(iso || "") : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+async function sendBookingAlert({ data, guest, stay }) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const to = (process.env.BOOKING_ALERT_TO || "Balinestvillas@gmail.com").split(",").map((x) => x.trim()).filter(Boolean);
+  const s = stay || {};
+  const villa = VILLA_NAMES[s.villa] || s.villa || "Villa";
+  const nights = s.checkin && s.checkout ? Math.round((new Date(s.checkout) - new Date(s.checkin)) / 86400000) : null;
+  const ages = Array.isArray(s.childAges) && s.childAges.length ? " (ages " + s.childAges.map((a) => (String(a) === "0" ? "under 1" : a)).join(", ") + ")" : "";
+  const isTest = /test/i.test(String(s.occasion || "") + " " + String(guest?.lastName || ""));
+  const rows = [
+    ["Confirmation", data.confirmationCode || data._id],
+    ["Villa", villa],
+    ["Check-in", niceDate(s.checkin) + " (from 3pm)"],
+    ["Checkout", niceDate(s.checkout) + " (by 11am)"],
+    ["Nights", nights],
+    ["Guests", (s.adults || 0) + " adults" + (s.children ? ", " + s.children + " children" + ages : "")],
+    ["Guest name", ((guest?.firstName || "") + " " + (guest?.lastName || "")).trim()],
+    ["Email", guest?.email || ""],
+    ["WhatsApp", s.whatsapp || guest?.phone || ""],
+    ["Special requests", s.occasion || "None"],
+    ["Paid", s.total ? (s.currency || "IDR") + " " + Math.round(s.total).toLocaleString("en-US") + " (card, non-refundable)" : ""],
+  ];
+  const subject = (isTest ? "[TEST] " : "") + "New website booking: " + villa + ", " + niceDate(s.checkin) + " to " + niceDate(s.checkout) + " · " + (data.confirmationCode || "");
+  const text = "A guest just booked on book.oasisuluwatu.com. It is already confirmed in Guesty.\n\n" +
+    rows.map(([k, v]) => k + ": " + (v == null ? "" : v)).join("\n") +
+    "\n\nThe special requests and children's ages above are not in Guesty, as the booking page can't send notes to Guesty.";
+  const html = '<p style="font:15px/1.5 Arial,sans-serif">A guest just booked on <b>book.oasisuluwatu.com</b>. It is already confirmed in Guesty.</p>' +
+    '<table style="font:15px/1.5 Arial,sans-serif;border-collapse:collapse">' +
+    rows.map(([k, v]) => '<tr><td style="padding:4px 16px 4px 0;color:#666;vertical-align:top">' + escHtml(k) + '</td><td style="padding:4px 0"><b>' + escHtml(v) + "</b></td></tr>").join("") +
+    '</table><p style="font:13px/1.5 Arial,sans-serif;color:#666">The special requests and children\'s ages above are not in Guesty, as the booking page can\'t send notes to Guesty.</p>';
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "Oasis website bookings <bookings@mail.oasisuluwatu.com>",
+      to,
+      ...(guest?.email ? { reply_to: guest.email } : {}),
+      subject,
+      text,
+      html,
+    }),
+  });
+  const out = await r.text();
+  console.log("ALERT", r.status, out.slice(0, 200));
+}
 
 // Public settings for the page. The Stripe publishable key is public by
 // design; when it is missing the page hands payment to Balinest's checkout.
