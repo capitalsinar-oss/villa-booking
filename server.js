@@ -23,7 +23,7 @@ const path = require("path");
 const express = require("express");
 
 const app = express();
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: "200kb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // ---------------------------------------------------------------------------
 // 1. CONFIG
@@ -259,14 +259,14 @@ app.get("/api/search", async (req, res) => {
 // Listing details for the page: house rules, amenities, check-in times and
 // minimum stay, straight from Guesty. Cached for 6 hours.
 const listingCache = new Map();
-app.get("/api/listing/:key", async (req, res) => {
-  const villa = VILLAS.find((v) => v.key === req.params.key);
-  if (!villa) return res.status(404).json({ error: "unknown_villa" });
+async function getListingData(key) {
+  const villa = VILLAS.find((v) => v.key === key);
+  if (!villa) throw new Error("unknown_villa");
   const hit = listingCache.get(villa.key);
-  if (hit && hit.at > Date.now() - 6 * 3600 * 1000) return res.json(hit.data);
-  try {
+  if (hit && hit.at > Date.now() - 6 * 3600 * 1000) return hit.data;
+  {
     const r = await guesty(`/api/listings/${villa.listingId}`);
-    if (!r.ok || !r.data) return res.status(502).json({ error: r.data?.error?.code || `HTTP_${r.status}` });
+    if (!r.ok || !r.data) throw new Error(r.data?.error?.code || `HTTP_${r.status}`);
     const l = r.data;
     const data = {
       key: villa.key,
@@ -284,10 +284,13 @@ app.get("/api/listing/:key", async (req, res) => {
       fields: Object.keys(l),
     };
     listingCache.set(villa.key, { at: Date.now(), data });
-    res.json(data);
-  } catch (err) {
-    res.status(502).json({ error: "listing_failed" });
+    return data;
   }
+}
+app.get("/api/listing/:key", async (req, res) => {
+  if (!VILLAS.find((v) => v.key === req.params.key)) return res.status(404).json({ error: "unknown_villa" });
+  try { res.json(await getListingData(req.params.key)); }
+  catch (err) { res.status(502).json({ error: "listing_failed" }); }
 });
 
 // Day-by-day availability for the calendar (greys out booked nights and shows
@@ -535,6 +538,20 @@ app.get("/api/status", async (req, res) => {
     res.status(502).json({ tokenOk: false, error: err.message.slice(0, 200) });
   }
 });
+
+// Plain email through Resend (from mail.oasisuluwatu.com), for internal alerts.
+async function sendEmail({ to, subject, text }) {
+  if (!process.env.RESEND_API_KEY) return;
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + process.env.RESEND_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "Oasis website <bookings@mail.oasisuluwatu.com>", to, subject, text }),
+  });
+  console.log("EMAIL", r.status, subject.slice(0, 80));
+}
+
+// Instagram DM assistant (@oasisuluwatu, @daysatjati). Off until IG_ASSISTANT=on.
+require("./ig-assistant")(app, { VILLAS, quoteVilla, getListing: getListingData, sendEmail });
 
 // ---------------------------------------------------------------------------
 // 5. BOOKING PAGE
