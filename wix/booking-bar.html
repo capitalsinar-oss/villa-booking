@@ -39,7 +39,8 @@
     var p = location.pathname.toLowerCase();
     if (/jati/.test(p)) return "jati";
     if (/ceylon/.test(p)) return "ceylon";
-    return "forest";
+    if (/kapuk|palem|forest/.test(p)) return "forest";
+    return "all";
   }
   function iso(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function link(extra) {
@@ -64,7 +65,7 @@
         [1,2,3,4,5,6,7,8,9,10,11,12].map(function (n) { return '<option value="' + n + '"' + (n === 2 ? " selected" : "") + ">" + n + (n === 1 ? " guest" : " guests") + "</option>"; }).join("") +
       '</select></label>' +
       '<label><span class="k">Villa</span><select name="villa" aria-label="Villa">' +
-        '<option value="forest">Forest villas</option><option value="jati">Jati</option><option value="ceylon">Ceylon</option><option value="all">All houses</option>' +
+        '<option value="all">All villas</option><option value="forest">Kapuk &amp; Palem</option><option value="jati">Jati</option><option value="ceylon">Ceylon</option>' +
       '</select></label>' +
       '<button class="d" type="submit">Check availability</button>' +
       '<div class="m"><span>When are you coming?</span><button type="submit">Check dates</button></div>' +

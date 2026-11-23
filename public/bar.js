@@ -1,0 +1,100 @@
+/* Oasis booking bar for oasisuluwatu.com. Loaded by a Wix Custom Embed: <script src="https://book.oasisuluwatu.com/bar.js" defer></script>. Source of truth: villa-booking/wix/booking-bar.html (rebuild with the snippet in git history). */
+(function(){if(document.getElementById('oasis-bb-css'))return;var s=document.createElement('style');s.id='oasis-bb-css';s.textContent="#oasis-bb{position:sticky;top:var(--oasis-hdr,0px);z-index:60;background:#DFD2C1;border-top:1px solid rgba(47,52,34,.14);border-bottom:1px solid rgba(47,52,34,.14);font-family:marcellus,serif;color:#2F3422}\n#oasis-bb *{box-sizing:border-box;font-family:inherit}\n#oasis-bb form{max-width:1040px;margin:0 auto;height:54px;display:flex;align-items:center;gap:0;padding:0 16px}\n#oasis-bb label{display:flex;flex-direction:column;justify-content:center;height:38px;padding:0 16px;border-left:1px solid rgba(47,52,34,.18);flex:1 1 0;min-width:0;cursor:pointer}\n#oasis-bb label:first-child{border-left:0;padding-left:0}\n#oasis-bb .k{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#878372;line-height:1.2}\n#oasis-bb input,#oasis-bb select{border:0;background:transparent;color:#2F3422;font-size:15px;padding:0;margin:0;height:20px;width:100%;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer}\n#oasis-bb select{background:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232F3422' stroke-width='1.2'/%3E%3C/svg%3E\") right 2px center no-repeat;padding-right:16px}\n#oasis-bb input:focus-visible,#oasis-bb select:focus-visible{text-decoration:underline}\n#oasis-bb button{flex:0 0 auto;height:38px;padding:0 22px;margin-left:12px;border:0;border-radius:0;background:#2F3422;color:#DFD2C1;font-size:13px;letter-spacing:1.4px;cursor:pointer;white-space:nowrap}\n#oasis-bb button:hover{background:#171713}\n#oasis-bb .m{display:none}\n@media (max-width:820px){\n  #oasis-bb form{height:50px;padding:0 16px;justify-content:space-between}\n  #oasis-bb label,#oasis-bb button.d{display:none}\n  #oasis-bb .m{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}\n  #oasis-bb .m span{font-size:15px}\n  #oasis-bb .m button{margin:0;height:34px;padding:0 16px;font-size:12px}\n}";document.head.appendChild(s);})();
+(function () {
+  var BOOK = "https://book.oasisuluwatu.com";
+  var KEYS = ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid","gclid"];
+
+  function src() {
+    var s = {};
+    try { s = JSON.parse(sessionStorage.getItem("oasis_src") || "{}"); } catch (e) {}
+    var p = new URLSearchParams(location.search);
+    KEYS.forEach(function (k) { if (p.get(k)) s[k] = p.get(k).slice(0, 200); });
+    try { sessionStorage.setItem("oasis_src", JSON.stringify(s)); } catch (e) {}
+    return s;
+  }
+  function villaForPage() {
+    var p = location.pathname.toLowerCase();
+    if (/jati/.test(p)) return "jati";
+    if (/ceylon/.test(p)) return "ceylon";
+    if (/kapuk|palem|forest/.test(p)) return "forest";
+    return "all";
+  }
+  function iso(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+  function link(extra) {
+    var q = new URLSearchParams(), s = src();
+    KEYS.forEach(function (k) { if (s[k]) q.set(k, s[k]); });
+    q.set("from", "site" + (location.pathname === "/" ? "-home" : location.pathname.replace(/\//g, "-")));
+    Object.keys(extra).forEach(function (k) { if (extra[k] !== "" && extra[k] != null) q.set(k, extra[k]); });
+    return BOOK + "/?" + q.toString();
+  }
+
+  function build() {
+    var hdr = document.getElementById("SITE_HEADER");
+    if (!hdr || document.getElementById("oasis-bb")) return !!hdr;
+    var today = iso(new Date());
+    var bar = document.createElement("div");
+    bar.id = "oasis-bb";
+    bar.innerHTML =
+      '<form novalidate>' +
+      '<label><span class="k">Arrive</span><input type="date" name="checkin" min="' + today + '" aria-label="Arrive"></label>' +
+      '<label><span class="k">Leave</span><input type="date" name="checkout" min="' + today + '" aria-label="Leave"></label>' +
+      '<label><span class="k">Guests</span><select name="adults" aria-label="Guests">' +
+        [1,2,3,4,5,6,7,8,9,10,11,12].map(function (n) { return '<option value="' + n + '"' + (n === 2 ? " selected" : "") + ">" + n + (n === 1 ? " guest" : " guests") + "</option>"; }).join("") +
+      '</select></label>' +
+      '<label><span class="k">Villa</span><select name="villa" aria-label="Villa">' +
+        '<option value="all">All villas</option><option value="forest">Kapuk &amp; Palem</option><option value="jati">Jati</option><option value="ceylon">Ceylon</option>' +
+      '</select></label>' +
+      '<button class="d" type="submit">Check availability</button>' +
+      '<div class="m"><span>When are you coming?</span><button type="submit">Check dates</button></div>' +
+      '</form>';
+    hdr.insertAdjacentElement("afterend", bar);
+    var f = bar.querySelector("form");
+    f.villa.value = villaForPage();
+    f.checkin.addEventListener("change", function () {
+      if (!f.checkin.value) return;
+      var d = new Date(f.checkin.value + "T00:00:00"); d.setDate(d.getDate() + 1);
+      f.checkout.min = iso(d);
+      if (!f.checkout.value || f.checkout.value <= f.checkin.value) { d.setDate(d.getDate() + 2); f.checkout.value = iso(d); }
+    });
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var mobile = matchMedia("(max-width:820px)").matches;
+      var ok = f.checkin.value && f.checkout.value && f.checkout.value > f.checkin.value;
+      location.href = link(mobile ? { villa: f.villa.value } : {
+        villa: f.villa.value, adults: f.adults.value,
+        checkin: ok ? f.checkin.value : "", checkout: ok ? f.checkout.value : ""
+      });
+    });
+    return true;
+  }
+
+  function sync() {
+    var hdr = document.getElementById("SITE_HEADER"), bar = document.getElementById("oasis-bb");
+    if (hdr && bar) {
+      var sticky = getComputedStyle(hdr).position === "sticky" || getComputedStyle(hdr).position === "fixed";
+      bar.style.setProperty("--oasis-hdr", sticky ? hdr.getBoundingClientRect().height + "px" : "0px");
+    }
+    var v = villaForPage();
+    if (bar && bar.dataset.path !== location.pathname) { bar.dataset.path = location.pathname; bar.querySelector("form").villa.value = v; }
+    var links = document.querySelectorAll("#SITE_HEADER a, #SITE_FOOTER a, a");
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      if (/^\s*book now\s*$/i.test(a.textContent || "") && !a.dataset.oasisBook) {
+        a.dataset.oasisBook = "1";
+        a.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); location.href = link({ villa: villaForPage() }); }, true);
+        a.setAttribute("href", link({ villa: v }));
+        a.setAttribute("target", "_self");
+      }
+    }
+  }
+
+  function tick() { if (build()) sync(); }
+  tick();
+  var n = 0, t = setInterval(function () { tick(); if (++n > 40) clearInterval(t); }, 250);
+  var queued = false;
+  new MutationObserver(function () {
+    if (queued) return; queued = true;
+    setTimeout(function () { queued = false; tick(); }, 300);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener("resize", sync);
+})();

@@ -522,7 +522,7 @@
       foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">' + (v.dot === "forest" ? "For your group, see Palem and Kapuk together above." : "Message us and we’ll help with your group.") + '</p></div>' +
         (v.dot === "forest" ? "" : '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask us</a>');
     } else if (st === "free") {
-      foot = '<div><p class="price">' + idr(q.total, q.currency) + '</p><p class="per">' + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
+      foot = '<div><p class="price">' + idr(q.total, q.currency) + '</p><p class="per">' + (n > 1 ? "about " + idr(q.total / n, q.currency) + " a night · " : "") + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
         '<button type="button" class="btn" data-choose="' + key + '">Choose ' + esc(v.name.replace("Oasis ", "")) + "</button>";
     } else if (st === "min") {
       var min = minFor(key, s.checkin);
@@ -746,6 +746,13 @@
         "<div><dt>Cancellation</dt><dd>Non-refundable. You pay the full amount now, and it isn’t refunded if you cancel or change your dates.</dd></div>" +
         "<div><dt>Price</dt><dd>" + idr(q.total, q.currency) + " in total, charged in " + esc(q.currency || "IDR") + " when you book. It includes the booking fee shown in the price details.</dd></div>" +
         "</dl>";
+      var facts = [];
+      if (l.bedrooms) facts.push(l.bedrooms + (l.bedrooms === 1 ? " bedroom" : " bedrooms"));
+      if (l.beds) facts.push(l.beds + (l.beds === 1 ? " bed" : " beds"));
+      if (l.bathrooms) facts.push(l.bathrooms + (l.bathrooms === 1 ? " bathroom" : " bathrooms"));
+      var AM = [["Swimming pool", "Private pool"], ["Air conditioning", "Air conditioning"], ["Wireless Internet", "Wi-Fi"], ["Kitchen", "Full kitchen"], ["Coffee maker", "Coffee maker"], ["Bathtub", "Bathtub"], ["TV", "TV"], ["Safe", "Safe"], ["Hair dryer", "Hair dryer"], ["Iron", "Iron"], ["Washer", "Washing machine"], ["Free parking on premises", "Parking"]];
+      var am = AM.filter(function (a) { return (l.amenities || []).indexOf(a[0]) > -1; }).map(function (a) { return a[1]; });
+      if (facts.length || am.length) h += '<p class="t-h">The house</p>' + (facts.length ? '<p class="small">' + esc(facts.join(" · ")) + "</p>" : "") + (am.length ? '<ul class="amen">' + am.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
       if (acc.incl.length) h += '<p class="t-h">Included in your stay</p><ul class="ticks">' + acc.incl.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
       if (meals) h += '<p class="t-h">Not included</p><ul class="crosses"><li>Meals. Breakfast or a private chef can be arranged, at an extra charge.</li></ul>';
       if (acc.extra.length) h += '<p class="t-h">On request, at an extra charge</p><p class="small">' + esc(acc.extra.join(" · ")) + "</p>";

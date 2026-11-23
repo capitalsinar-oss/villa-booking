@@ -279,6 +279,7 @@ async function getListingData(key) {
       accommodates: l.accommodates || null,
       bedrooms: l.bedrooms || null,
       bathrooms: l.bathrooms || null,
+      beds: l.beds || null,
       houseRules: l.houseRules || null,
       taxes: l.taxes || null,
       fields: Object.keys(l),
@@ -572,6 +573,7 @@ app.use(
   express.static(path.join(__dirname, "public"), {
     index: false,
     setHeaders: (res, file) => {
+      if (/bar\.js$/.test(file)) { res.setHeader("Cache-Control", "public, max-age=600"); res.setHeader("Access-Control-Allow-Origin", "*"); return; }
       res.setHeader("Cache-Control", /\.(ttf|otf)$/.test(file) ? "public, max-age=2592000" : "public, max-age=31536000, immutable");
     },
   })
