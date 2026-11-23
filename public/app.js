@@ -733,7 +733,9 @@
       if (meals) h += '<p class="t-h">Not included</p><ul class="crosses"><li>Meals. Breakfast or a private chef can be arranged, at an extra charge.</li></ul>';
       if (acc.extra.length) h += '<p class="t-h">On request, at an extra charge</p><p class="small">' + esc(acc.extra.join(" · ")) + "</p>";
       if (pd.houseRules) h += '<p class="t-h">House rules</p><p class="small">' + esc(pd.houseRules) + "</p>";
-      if (pd.notes) h += '<p class="t-h">Good to know</p><p class="small">' + esc(pd.notes) + "</p>";
+      // Only Ceylon's listing note (motorbike parking) is shown. The Oasis listings carry
+      // a construction-noise note that Jayne says is not true (23 Nov 2026).
+      if (pd.notes && key === "ceylon") h += '<p class="t-h">Good to know</p><p class="small">' + esc(pd.notes) + "</p>";
       h += '<p class="fine">Your booking is with Balinest Villas, who manage the house, under their <a href="' + TERMS_URL + '" target="_blank" rel="noopener">terms and conditions</a> and <a href="' + PRIVACY_URL + '" target="_blank" rel="noopener">privacy policy</a>.</p>';
       body.innerHTML = h;
     }).catch(function () {
