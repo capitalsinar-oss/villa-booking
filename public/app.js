@@ -256,6 +256,7 @@
   function makeCal(el, form, mode) {
     var c = { el: el, form: form, mode: mode, offset: 0 };
     el.addEventListener("click", function (e) {
+      e.stopPropagation(); // the calendar redraws, so outside-click checks would misfire
       var nav = e.target.closest("[data-cal-nav]");
       if (nav) { c.offset = Math.max(0, c.offset + Number(nav.getAttribute("data-cal-nav"))); drawCal(c); return; }
       var b = e.target.closest("[data-d]");
