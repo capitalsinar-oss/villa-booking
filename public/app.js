@@ -122,6 +122,8 @@
   function pixel(ev, data) {
     data = data || {};
     try { if (window.fbq) window.fbq("track", ev, data); } catch (e) {}
+    // Clarity: mark each funnel step, so recordings can be filtered by how far a visitor got.
+    try { if (window.clarity) { window.clarity("event", ev); if (data.content_ids && data.content_ids.length) window.clarity("set", "villa", data.content_ids.join(",")); } } catch (e) {}
     try {
       window.dataLayer = window.dataLayer || [];
       var ids = data.content_ids || [];
