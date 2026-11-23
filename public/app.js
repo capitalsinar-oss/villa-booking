@@ -125,6 +125,13 @@
     try {
       window.dataLayer = window.dataLayer || [];
       var ids = data.content_ids || [];
+      // GTM-WFM4LBXL has GA4 triggers for search and generate_lead only, so the
+      // other funnel steps go to GA4 directly through the Google tag GTM loads.
+      if (ev === "ViewContent" || ev === "InitiateCheckout" || ev === "Purchase") {
+        (function () { window.dataLayer.push(arguments); })("event", GA4[ev], { send_to: "G-TJ274KHR96", currency: data.currency || "IDR", value: data.value,
+          transaction_id: ev === "Purchase" && state.booking ? state.booking.confirmationCode : undefined,
+          items: ids.map(function (k) { return { item_id: k, item_name: VILLAS[k] ? VILLAS[k].name : k }; }) });
+      }
       window.dataLayer.push({ event: GA4[ev] || ev, booking: {
         value: data.value, currency: data.currency, villa: ids.join(","),
         checkin: data.checkin_date, checkout: data.checkout_date,
@@ -990,6 +997,7 @@
     $("#ics-link").href = icsHref();
     renderCars();
     show("confirmed");
+    $("#view-transfer").hidden = false;   // the transfer offer sits right under the confirmation
   }
   var tForm = $("#transfer-form");
   function carsNeeded() {
