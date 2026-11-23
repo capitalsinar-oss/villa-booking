@@ -166,7 +166,7 @@
     fromHistory = true;
     try {
       if (state.booking) { show("confirmed"); }               // already booked: stay on the confirmation
-      else if (st.v === "villa" && st.villa && state.quotes[st.villa]) openVilla(st.villa);
+      else if (st.v === "villa" && st.villa && state.quotes[st.villa]) { state.villa = st.villa; openDetails(); }
       else if (st.v === "details" && state.villa && state.quotes[state.villa]) openDetails();
       else if (st.v === "transfer") show("transfer");
       else if (Object.keys(state.quotes).length) show("results");
@@ -275,7 +275,7 @@
     for (var i = 0; i < lead; i++) h += "<span></span>";
     for (var dd = 1; dd <= days; dd++) {
       var di = iso(new Date(y, m, dd)), cls = ["cal-d"], dis = di < t;
-      var n = di < t ? null : night(di, scope);
+      var n = di < t ? null : night(di, "all");
       if (n && !n.free) cls.push("full");
       if (picking === "in" && n && !n.free) dis = true;           // no villa free that night: can't arrive
       if (picking === "out" && di <= a) dis = di < a ? true : dis; // leaving must be after arriving
@@ -289,7 +289,7 @@
   function calHint(c) {
     var f = c.form, a = f.checkin.value, b = f.checkout.value, scope = currentScope(f);
     if (!a) return "Tap your arrival date";
-    var min = minStayFor(a, scope);
+    var min = minStayFor(a, "all");
     if (!b) return "Now tap your leaving date" + (min > 1 ? " · minimum stay " + min + " nights" : "");
     var n = Math.round((d(b) - d(a)) / 86400000);
     return n + (n === 1 ? " night" : " nights") + (n < min ? " · the minimum stay is " + min + " nights" : "");
@@ -346,7 +346,7 @@
     if (!s.checkin || !s.checkout) return "Please choose both dates.";
     if (s.checkout <= s.checkin) return "Your leaving date needs to be after your arrival.";
     if (s.checkin < iso(new Date())) return "Your arrival date has already passed. Please choose a date from today.";
-    var min = minStayFor(s.checkin, s.villa), n = nightsOf(s);
+    var min = minStayFor(s.checkin, "all"), n = nightsOf(s);
     if (n < min) return "The minimum stay from " + fmt(s.checkin, { day: "numeric", month: "short" }) + " is " + min + " nights.";
     return null;
   }
@@ -605,7 +605,7 @@
     var box = $("#results");
     box.innerHTML = html;
     wireCarousels(box);
-    $all("[data-choose]", box).forEach(function (b) { b.addEventListener("click", function () { openVilla(b.getAttribute("data-choose")); }); });
+    $all("[data-choose]", box).forEach(function (b) { b.addEventListener("click", function () { chooseVilla(b.getAttribute("data-choose")); }); });
     $all("[data-extend]", box).forEach(function (b) { b.addEventListener("click", function () {
       runSearch({ checkin: s.checkin, checkout: addDays(s.checkin, Number(b.getAttribute("data-extend"))), villa: s.villa });
     }); });
@@ -666,6 +666,14 @@
     show("villa");
     getListing(key).catch(function () {});
     pixel("ViewContent", { content_ids: [key], content_type: "hotel", value: q.total, currency: q.currency });
+  }
+
+  function chooseVilla(key) {
+    var q = state.quotes[key];
+    state.villa = key;
+    getListing(key).catch(function () {});
+    pixel("ViewContent", { content_ids: [key], content_type: "hotel", value: q.total, currency: q.currency });
+    openDetails();
   }
 
   // ---------- details ----------
@@ -941,7 +949,7 @@
       openConfirmed();
     }).catch(function () {
       btn.disabled = false; btn.textContent = "Confirm and pay " + idr(q.total, q.currency);
-      showError("The payment didn't go through, and you haven't been charged. Please check the card, or WhatsApp us.");
+      showError("The payment didn't go through, and you haven't been charged. Please check the card and try again, or WhatsApp us.");
       throw new Error("booking_failed");
     });
   }

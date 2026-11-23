@@ -15,9 +15,8 @@
  * Public setting (safe to show in the page):
  *   STRIPE_PUBLISHABLE_KEY  Balinest's Stripe key (pk_live_...). While it is
  *   not set, guests pay on Balinest's own checkout page instead.
- *   ONPAGE_PAYMENT          "on" shows the card form to every guest. Until then
- *   the card form shows only on test links (?paytest=1), so it can be tried
- *   with one real booking before guests see it.
+ *   ONPAGE_PAYMENT          "off" hides the card form (guests then pay on
+ *   Balinest's checkout); test links (?paytest=1) still show it.
  */
 
 const path = require("path");
@@ -377,7 +376,8 @@ app.post("/api/book", async (req, res) => {
 // design; when it is missing the page hands payment to Balinest's checkout.
 app.get("/api/config", (req, res) => {
   res.json({
-    stripePk: (process.env.ONPAGE_PAYMENT === "on" || req.query.test === "1")
+    // Card payment on our page for every guest, unless switched off with ONPAGE_PAYMENT=off.
+    stripePk: (process.env.ONPAGE_PAYMENT !== "off" || req.query.test === "1")
       ? (process.env.STRIPE_PUBLISHABLE_KEY || null) : null,
     checkoutBase: "https://book.balinestvillas.com/en/properties",
   });
