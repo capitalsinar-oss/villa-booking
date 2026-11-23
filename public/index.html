@@ -47,8 +47,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
   <!-- Desktop booking bar -->
   <form class="bar d-only" id="bar" aria-label="Check availability" novalidate>
-    <label class="cell dates"><span class="k">Arrive</span><input type="date" name="checkin" required></label>
-    <label class="cell dates"><span class="k">Leave</span><input type="date" name="checkout" required></label>
+    <div class="cell dates">
+      <span class="k">Dates</span>
+      <button type="button" class="v-btn" id="dates-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="dates-pop"><span data-dates-label>Add dates</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <input type="hidden" name="checkin"><input type="hidden" name="checkout">
+      <div class="pop cal-pop" id="dates-pop" role="dialog" aria-label="Choose your dates" hidden><div data-cal="desk"></div></div>
+    </div>
     <div class="cell guests">
       <span class="k">Guests</span>
       <button type="button" class="v-btn" id="guests-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="guests-pop"><span data-guests-label>2 adults</span>
@@ -61,10 +66,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     </div>
     <label class="cell villa"><span class="k">Villa</span>
       <select name="villa" aria-label="Villa">
-        <option value="forest">Forest villas · Palem, Kapuk</option>
-        <option value="jati">Oasis Jati</option>
-        <option value="ceylon">Ceylon Residences · Suluban</option>
         <option value="all">All villas</option>
+        <option value="forest">&nbsp;&nbsp;Forest villas · Palem, Kapuk</option>
+        <option value="jati">&nbsp;&nbsp;Oasis Jati</option>
+        <option value="ceylon">&nbsp;&nbsp;Ceylon Residences · Suluban</option>
       </select>
     </label>
     <button class="btn" type="submit" data-bar-submit>Check availability</button>
@@ -166,13 +171,25 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               <label class="field">Email<input type="email" name="email" autocomplete="email"></label>
               <div class="field"><span id="wa-label">WhatsApp number</span>
                 <div class="phone">
-                  <select name="waCountry" aria-label="Country code"></select>
+                  <div class="cc">
+                    <button type="button" class="cc-btn" id="cc-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code"><span id="cc-label">+</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+                    <div class="cc-pop" id="cc-pop" hidden>
+                      <input type="search" id="cc-search" placeholder="Search country or code" autocomplete="off" aria-label="Search country or code">
+                      <ul id="cc-list" role="listbox" aria-label="Countries"></ul>
+                    </div>
+                  </div>
+                  <input type="hidden" name="waCountry">
                   <input type="tel" name="whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="Mobile number" aria-labelledby="wa-label" aria-describedby="wa-hint">
                   <span class="wa-ok" id="wa-ok" hidden aria-hidden="true">✓</span>
                 </div>
                 <span class="wa-hint" id="wa-hint"></span>
               </div>
             </div>
+          </section>
+
+          <section class="box terms-box" id="terms-box" aria-labelledby="terms-h">
+            <h2 id="terms-h" class="label">Before you pay</h2>
+            <div id="terms-body"><p class="small muted">Loading the house details…</p></div>
           </section>
 
           <section class="box" aria-labelledby="pay-h">
@@ -271,29 +288,29 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <span style="width:44px"></span>
   </div>
   <form id="sheet-form" class="sheet-body" novalidate>
-    <div class="sheet-sec">
-      <span class="k">Dates</span>
-      <div class="grid2">
-        <label class="field">Arrive<input type="date" name="checkin" required></label>
-        <label class="field">Leave<input type="date" name="checkout" required></label>
+    <fieldset class="sheet-sec">
+      <legend class="k">Villa</legend>
+      <div class="chips" role="radiogroup">
+        <label class="chip"><input type="radio" name="villa" value="all" checked><span>All villas</span></label>
+        <label class="chip"><input type="radio" name="villa" value="forest"><span><i class="dot forest"></i>Forest villas</span></label>
+        <label class="chip"><input type="radio" name="villa" value="jati"><span><i class="dot jati"></i>Jati</span></label>
+        <label class="chip"><input type="radio" name="villa" value="ceylon"><span><i class="dot ceylon"></i>Ceylon</span></label>
       </div>
-    </div>
-    <div class="sheet-sec">
+    </fieldset>
+    <div class="sheet-sec sheet-guests">
       <span class="k">Guests</span>
       <div class="prow"><span>Adults</span><div class="stepper"><button type="button" data-step="adults:-1" aria-label="One fewer adult">−</button><output data-count="adults">2</output><button type="button" data-step="adults:1" aria-label="One more adult">+</button></div></div>
       <div class="prow"><span>Children</span><div class="stepper"><button type="button" data-step="children:-1" aria-label="One fewer child">−</button><output data-count="children">0</output><button type="button" data-step="children:1" aria-label="One more child">+</button></div></div>
     </div>
-    <fieldset class="sheet-sec">
-      <legend class="k">Villa</legend>
-      <label class="vopt"><span class="dot forest"></span><span>Forest villas<span class="sub">Oasis Palem and Oasis Kapuk</span></span><input type="radio" name="villa" value="forest" checked></label>
-      <label class="vopt"><span class="dot jati"></span><span>Oasis Jati<span class="sub">A house for slower days</span></span><input type="radio" name="villa" value="jati"></label>
-      <label class="vopt"><span class="dot ceylon"></span><span>Ceylon Residences<span class="sub">In Suluban, not at Oasis</span></span><input type="radio" name="villa" value="ceylon"></label>
-      <label class="vopt"><span class="dot none"></span><span>All villas</span><input type="radio" name="villa" value="all"></label>
-    </fieldset>
+    <div class="sheet-sec sheet-dates">
+      <div class="tiles"><div class="tile" data-tile="in"><span class="k">Arrive</span><span class="v" data-tile-v="in">Choose a date</span></div><div class="tile" data-tile="out"><span class="k">Leave</span><span class="v" data-tile-v="out">–</span></div></div>
+      <input type="hidden" name="checkin"><input type="hidden" name="checkout">
+      <div data-cal="phone"></div>
+    </div>
     <p class="form-error" id="sheet-error" role="alert" hidden></p>
   </form>
   <div class="sheet-foot">
-    <button type="button" class="link-btn" id="sheet-clear">Clear</button>
+    <button type="button" class="link-btn" id="sheet-clear">Clear dates</button>
     <button type="submit" form="sheet-form" class="btn">Show villas</button>
   </div>
 </div>

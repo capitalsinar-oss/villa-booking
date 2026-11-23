@@ -3,12 +3,18 @@
   "use strict";
 
   // ---------- villa content (copy from the live listings; prices come live from Guesty) ----------
-  function wix(id, w, h) {
-    return "https://static.wixstatic.com/media/0bd874_" + id + "~mv2.jpg/v1/fill/w_" + w + ",h_" + h + ",al_c,q_85,enc_auto/0bd874_" + id + "~mv2.jpg";
+  // Photos are resized and compressed by Wix (or Airbnb's CDN for Ceylon) to the
+  // size each screen needs. A photo can carry a crop (x,y,w,h on the original),
+  // e.g. to centre Jati's cover on the dining table.
+  function wix(id, w, h) { return pic({ id: id }, w, h); }
+  function pic(p, w, h, fit) {
+    if (p.abnb) return "https://a0.muscache.com/im/pictures/hosting/Hosting-1655454682482668727/original/" + p.abnb + ".jpeg?im_w=" + (w <= 480 ? 480 : w <= 720 ? 720 : w <= 960 ? 960 : 1200);
+    var crop = p.crop && !fit ? "crop/" + p.crop + "/" : "";
+    return "https://static.wixstatic.com/media/0bd874_" + p.id + "~mv2.jpg/v1/" + crop + (fit ? "fit" : "fill") + "/w_" + w + ",h_" + h + (fit ? "" : ",al_c") + ",q_70,enc_auto/0bd874_" + p.id + "~mv2.jpg";
   }
-  function wixSet(ids) { return ids.map(function (id) { return wix(id, 1400, 1000); }); }
-  // Ceylon's photos are not in the Oasis Wix library yet: Airbnb listing photos until they are.
-  function abnb(id) { return "https://a0.muscache.com/im/pictures/hosting/Hosting-1655454682482668727/original/" + id + ".jpeg?im_w=1200"; }
+  function srcset(p) { return [480, 800, 1200].map(function (w) { return pic(p, w, Math.round(w * 0.7)) + " " + w + "w"; }).join(", "); }
+  function wixSet(ids) { return ids.map(function (x) { return typeof x === "string" ? { id: x } : x; }); }
+  function abnb(id) { return { abnb: id }; }
 
   var WA = "6281236676828";
   var VILLAS = {
@@ -31,7 +37,7 @@
       sub: "A house for slower days",
       body: "A house shaped almost entirely from solid teak, at the end of a quiet Pecatu lane. Named for the twenty teak trees that stood on the plot, lifted through construction and replanted into the finished home. Designed by Sidarta & Sandjaja, interiors by Michelle Arderia of BUD Studio.",
       facts: [3, 3, 6], link: "https://www.oasisuluwatu.com/daysatjati",
-      photos: wixSet(["45e262c2aa554dae95063c207e20e539", "4c137e0ddcf9490fad2946d84824e935", "d6478c6a13e8488ba029cdd282036efe", "663135cd6dcc42ce8ebb6af7f867df56", "c45897d7e7cc4fcd983e0da65daa5f8b"])
+      photos: wixSet([{ id: "45e262c2aa554dae95063c207e20e539", crop: "x_0,y_2200,w_2000,h_1600" }, "4c137e0ddcf9490fad2946d84824e935", "d6478c6a13e8488ba029cdd282036efe", "663135cd6dcc42ce8ebb6af7f867df56", "c45897d7e7cc4fcd983e0da65daa5f8b"])
     },
     ceylon: {
       name: "Ceylon Residences", dot: "ceylon", eyebrow: "Unit 4 · Suluban, Uluwatu", bookable: true, max: 4,
@@ -48,6 +54,7 @@
     jati: ["jati", "palem", "kapuk", "ceylon"],
     ceylon: ["ceylon", "palem", "kapuk", "jati"]
   };
+  var SCOPE = { all: ["palem", "kapuk", "jati", "ceylon"], forest: ["palem", "kapuk"], jati: ["jati"], ceylon: ["ceylon"] };
   Object.keys(VILLAS).forEach(function (k) { VILLAS[k].key = k; });
   var VILLA_LABEL = { forest: "Forest villas", jati: "Oasis Jati", ceylon: "Ceylon Residences", all: "All villas" };
 
@@ -205,22 +212,131 @@
   gBtn.addEventListener("click", function () { togglePop(gPop.hidden); });
   $("[data-close-pop]").addEventListener("click", function () { togglePop(false); gBtn.focus(); });
   document.addEventListener("click", function (e) { if (!gPop.hidden && !e.target.closest(".guests")) togglePop(false); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { togglePop(false); closeSheet(); } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { togglePop(false); if (typeof toggleDates === "function") toggleDates(false); closeSheet(); } });
 
-  // ---------- date inputs ----------
-  function setupDates(form) {
-    var today = new Date(); today.setHours(0, 0, 0, 0);
-    var tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    form.checkin.min = iso(today); form.checkout.min = iso(tomorrow);
-    form.checkin.addEventListener("change", function () {
-      if (!form.checkin.value) return;
-      var next = d(form.checkin.value); next.setDate(next.getDate() + 1);
-      form.checkout.min = iso(next);
-      if (!form.checkout.value || form.checkout.value <= form.checkin.value) form.checkout.value = iso(next);
-    });
-  }
+  // ---------- calendar: one tap for arrival, the next for leaving ----------
+  // Availability comes from Guesty's calendar (/api/calendar): nights when no
+  // villa in the chosen group is free are struck through, and the minimum stay
+  // for the arrival date is shown.
   var bar = $("#bar"), sheetForm = $("#sheet-form");
-  setupDates(bar); setupDates(sheetForm);
+  var CAL = { idx: null, loading: null };
+  function today0() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+  function addDays(isoStr, n) { var x = d(isoStr); x.setDate(x.getDate() + n); return iso(x); }
+  function loadAvail() {
+    if (CAL.loading) return CAL.loading;
+    var from = iso(today0()), to = addDays(from, 400);
+    CAL.loading = fetch("/api/calendar?from=" + from + "&to=" + to).then(function (r) { return r.json(); }).then(function (j) {
+      var idx = {};
+      Object.keys(j.villas || {}).forEach(function (k) {
+        var days = j.villas[k]; if (!Array.isArray(days)) return;
+        idx[k] = {}; days.forEach(function (x) { idx[k][x.date] = x; });
+      });
+      CAL.idx = idx; drawCals();
+    }).catch(function () {});
+    return CAL.loading;
+  }
+  function currentScope(form) {
+    if (form === bar) return bar.villa.value || "all";
+    var r = $('input[name="villa"]:checked', sheetForm); return r ? r.value : "all";
+  }
+  // Is any villa in the scope free on this night? And the shortest minimum stay among them.
+  function night(dateIso, scope) {
+    if (!CAL.idx) return null;
+    var free = false, min = 0;
+    (SCOPE[scope] || SCOPE.all).forEach(function (k) {
+      var x = CAL.idx[k] && CAL.idx[k][dateIso];
+      if (x && x.status === "available") { free = true; var m = x.minNights || 1; min = min ? Math.min(min, m) : m; }
+    });
+    return { free: free, min: min || 1 };
+  }
+  function minStayFor(checkin, scope) { var n = night(checkin, scope); return n && n.free ? n.min : 1; }
+  function minFor(key, checkin) { var x = CAL.idx && CAL.idx[key] && CAL.idx[key][checkin]; return x ? (x.minNights || 1) : 0; }
+
+  var cals = [];
+  function makeCal(el, form, mode) {
+    var c = { el: el, form: form, mode: mode, offset: 0 };
+    el.addEventListener("click", function (e) {
+      var nav = e.target.closest("[data-cal-nav]");
+      if (nav) { c.offset = Math.max(0, c.offset + Number(nav.getAttribute("data-cal-nav"))); drawCal(c); return; }
+      var b = e.target.closest("[data-d]");
+      if (b && !b.disabled) pick(c, b.getAttribute("data-d"));
+    });
+    cals.push(c); drawCal(c);
+    return c;
+  }
+  var WD = ["M", "T", "W", "T", "F", "S", "S"];
+  function monthHtml(y, m, c) {
+    var f = c.form, a = f.checkin.value, b = f.checkout.value, scope = currentScope(f), t = iso(today0());
+    var first = new Date(y, m, 1), lead = (first.getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate();
+    var picking = a && !b ? "out" : "in";
+    var h = '<div class="cal-month"><p class="cal-title">' + first.toLocaleDateString("en-GB", { month: "long", year: "numeric" }) + '</p><div class="cal-grid">';
+    if (c.mode === "desk") h += WD.map(function (w) { return '<span class="cal-wd">' + w + "</span>"; }).join("");
+    for (var i = 0; i < lead; i++) h += "<span></span>";
+    for (var dd = 1; dd <= days; dd++) {
+      var di = iso(new Date(y, m, dd)), cls = ["cal-d"], dis = di < t;
+      var n = night(di, scope);
+      if (n && !n.free) cls.push("full");
+      if (picking === "in" && n && !n.free) dis = true;           // no villa free that night: can't arrive
+      if (picking === "out" && di <= a) dis = di < a ? true : dis; // leaving must be after arriving
+      if (di === a) cls.push("start"); if (di === b) cls.push("end");
+      if (a && b && di > a && di < b) cls.push("mid");
+      if (di === t) cls.push("today");
+      h += '<button type="button" class="' + cls.join(" ") + '" data-d="' + di + '"' + (dis ? " disabled" : "") + ' aria-label="' + d(di).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) + (n && !n.free ? ", nothing free" : "") + '">' + dd + "</button>";
+    }
+    return h + "</div></div>";
+  }
+  function calHint(c) {
+    var f = c.form, a = f.checkin.value, b = f.checkout.value, scope = currentScope(f);
+    if (!a) return "Tap your arrival date";
+    var min = minStayFor(a, scope);
+    if (!b) return "Now tap your leaving date" + (min > 1 ? " · minimum stay " + min + " nights" : "");
+    var n = Math.round((d(b) - d(a)) / 86400000);
+    return n + (n === 1 ? " night" : " nights") + (n < min ? " · the minimum stay is " + min + " nights" : "");
+  }
+  function drawCal(c) {
+    var base = today0(), h = "";
+    if (c.mode === "desk") {
+      var y = base.getFullYear(), m = base.getMonth() + c.offset;
+      h = '<div class="cal-head"><button type="button" class="icon-btn" data-cal-nav="-1" aria-label="Earlier months"' + (c.offset ? "" : " disabled") + ">" + ICON.left + '</button><button type="button" class="icon-btn" data-cal-nav="1" aria-label="Later months">' + ICON.right + "</button></div>" +
+        '<div class="cal-months">' + monthHtml(y, m, c) + monthHtml(y, m + 1, c) + "</div>";
+    } else {
+      h = '<div class="cal-wds">' + WD.map(function (w) { return "<span>" + w + "</span>"; }).join("") + "</div>";
+      for (var i = 0; i < 13; i++) h += monthHtml(base.getFullYear(), base.getMonth() + i, c);
+    }
+    h += '<p class="cal-hint" aria-live="polite">' + calHint(c) + "</p>";
+    c.el.innerHTML = h;
+  }
+  function drawCals() { cals.forEach(drawCal); renderDateLabels(); }
+  function pick(c, di) {
+    var f = c.form, a = f.checkin.value, b = f.checkout.value;
+    if (!a || b || di <= a) { f.checkin.value = di; f.checkout.value = ""; }
+    else f.checkout.value = di;
+    // keep both forms on the same dates
+    [bar, sheetForm].forEach(function (o) { if (o !== f) { o.checkin.value = f.checkin.value; o.checkout.value = f.checkout.value; } });
+    drawCals();
+    if (c.mode === "desk" && f.checkin.value && f.checkout.value) setTimeout(function () { toggleDates(false); }, 250);
+  }
+  function renderDateLabels() {
+    var a = bar.checkin.value, b = bar.checkout.value;
+    var lbl = !a ? "Add dates" : !b ? fmt(a, { day: "numeric", month: "short" }) + " – leave?" : shortRange({ checkin: a, checkout: b });
+    $all("[data-dates-label]").forEach(function (x) { x.textContent = lbl; });
+    var vin = $('[data-tile-v="in"]'), vout = $('[data-tile-v="out"]');
+    if (vin) {
+      var sa = sheetForm.checkin.value, sb = sheetForm.checkout.value;
+      vin.textContent = sa ? fmt(sa, { weekday: "short", day: "numeric", month: "short" }) : "Choose a date";
+      vout.textContent = sb ? fmt(sb, { weekday: "short", day: "numeric", month: "short" }) : (sa ? "Choose a date" : "–");
+      $('[data-tile="in"]').classList.toggle("on", !sa || !!sb);
+      $('[data-tile="out"]').classList.toggle("on", !!sa && !sb);
+    }
+  }
+  makeCal($('[data-cal="desk"]'), bar, "desk");
+  makeCal($('[data-cal="phone"]'), sheetForm, "phone");
+  var dBtn = $("#dates-btn"), dPop = $("#dates-pop");
+  function toggleDates(open) { dPop.hidden = !open; dBtn.setAttribute("aria-expanded", open ? "true" : "false"); if (open) { loadAvail(); togglePop(false); } }
+  dBtn.addEventListener("click", function () { toggleDates(dPop.hidden); });
+  document.addEventListener("click", function (e) { if (!dPop.hidden && !e.target.closest(".dates")) toggleDates(false); });
+  bar.villa.addEventListener("change", drawCals);
+  $all('input[name="villa"]', sheetForm).forEach(function (r) { r.addEventListener("change", drawCals); });
 
   function readForm(form, villaValue) {
     return { checkin: form.checkin.value, checkout: form.checkout.value, villa: villaValue };
@@ -229,12 +345,15 @@
     if (!s.checkin || !s.checkout) return "Please choose both dates.";
     if (s.checkout <= s.checkin) return "Your leaving date needs to be after your arrival.";
     if (s.checkin < iso(new Date())) return "Your arrival date has already passed. Please choose a date from today.";
+    var min = minStayFor(s.checkin, s.villa), n = nightsOf(s);
+    if (n < min) return "The minimum stay from " + fmt(s.checkin, { day: "numeric", month: "short" }) + " is " + min + " nights.";
     return null;
   }
   function fillForms(s) {
     [bar, sheetForm].forEach(function (f) { f.checkin.value = s.checkin; f.checkout.value = s.checkout; });
     bar.villa.value = s.villa;
     $all('input[name="villa"]', sheetForm).forEach(function (r) { r.checked = r.value === s.villa; });
+    drawCals();
   }
 
   bar.addEventListener("submit", function (e) {
@@ -249,6 +368,7 @@
   function openSheet() {
     lastFocus = document.activeElement;
     if (state.search) fillForms(state.search);
+    loadAvail();
     sheet.hidden = false; document.body.style.overflow = "hidden";
     $("[data-close-sheet]").focus();
   }
@@ -262,12 +382,12 @@
     if (e.target.closest("[data-close-sheet]")) { e.preventDefault(); closeSheet(); }
   });
   $("#sheet-clear").addEventListener("click", function () {
-    sheetForm.checkin.value = ""; sheetForm.checkout.value = "";
-    state.adults = 2; state.children = 0; state.ages = []; renderCounts();
+    [bar, sheetForm].forEach(function (f) { f.checkin.value = ""; f.checkout.value = ""; });
+    drawCals();
   });
   sheetForm.addEventListener("submit", function (e) {
     e.preventDefault();
-    var v = ($('input[name="villa"]:checked', sheetForm) || {}).value || "forest";
+    var v = ($('input[name="villa"]:checked', sheetForm) || {}).value || "all";
     var s = readForm(sheetForm, v), err = checkDates(s), box = $("#sheet-error");
     box.hidden = !err; box.textContent = err || "";
     if (!err) { closeSheet(); runSearch(s); }
@@ -288,8 +408,9 @@
     var g = totalGuests(), perVilla = g > 6 ? Math.min(6, Math.ceil(g / 2)) : g;
     var q = new URLSearchParams({ checkin: s.checkin, checkout: s.checkout, guests: String(perVilla) });
     history.replaceState(null, "", "?" + new URLSearchParams(Object.assign({}, paramsToKeep(), { checkin: s.checkin, checkout: s.checkout, adults: state.adults, children: state.children, villa: s.villa })).toString());
+    var avail = loadAvail();
     fetch("/api/search?" + q.toString())
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (r) { return r.json().then(function (j) { return avail.then(function () { return { ok: r.ok, j: j }; }); }); })
       .then(function (res) {
         if (!res.ok) throw new Error(res.j.error || "search_failed");
         state.quotes = {};
@@ -308,6 +429,7 @@
   function paramsToKeep() {
     var p = new URLSearchParams(location.search), out = {};
     TRACK_KEYS.forEach(function (k) { if (p.get(k)) out[k] = p.get(k); });
+    if (p.get("paytest")) out.paytest = p.get("paytest");
     return out;
   }
 
@@ -316,9 +438,9 @@
     function one(ic, n, t) { return '<div class="fact"><span class="n">' + ICON[ic] + (n === "" ? "" : esc(n)) + '</span><span class="t">' + t + "</span></div>"; }
     return '<div class="facts">' + one("bed", f[0], "Bedrooms") + one("bath", f[1], "Bathrooms") + one("guest", f[2], "Guests") + one("pool", "", "Private pool") + "</div>";
   }
-  function photosHtml(v, cls) {
-    var imgs = v.photos.map(function (src, i) {
-      return '<img src="' + src + '" alt="' + esc(v.name) + ", photo " + (i + 1) + ' of 5" ' + (i ? 'loading="lazy"' : "") + ">";
+  function photosHtml(v, cls, eager) {
+    var imgs = v.photos.map(function (p, i) {
+      return '<img src="' + pic(p, 800, 560) + '" srcset="' + srcset(p) + '" sizes="(max-width: 820px) 100vw, 55vw" alt="' + esc(v.name) + ", photo " + (i + 1) + " of " + v.photos.length + '" decoding="async"' + (i || !eager ? ' loading="lazy"' : "") + ">";
     }).join("");
     return '<div class="photos ' + (cls || "") + '" role="group" aria-label="' + esc(v.name) + ' photos">' +
       '<div class="track">' + imgs + "</div>" +
@@ -331,7 +453,7 @@
   function openGallery(key, start) {
     var v = VILLAS[key], i = start || 0, g = $("#gallery");
     function draw() {
-      $("#gallery-img").src = v.photos[i];
+      $("#gallery-img").src = pic(v.photos[i], 1600, 1600, true);
       $("#gallery-img").alt = v.name + ", photo " + (i + 1) + " of " + v.photos.length;
       $("#gallery-count").textContent = (i + 1) + " / " + v.photos.length;
     }
@@ -370,23 +492,44 @@
     return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text);
   }
 
-  function cardHtml(key) {
-    var v = VILLAS[key], q = state.quotes[key], s = state.search, n = nightsOf(s);
+  // free · taken · min (stay too short) · big (party too large) · ask (not bookable online)
+  function statusOf(key) {
+    var v = VILLAS[key], q = state.quotes[key], s = state.search;
+    if (!v.bookable) return "ask";
+    if (totalGuests() > v.max) return "big";
+    if (q && q.available) return "free";
+    var min = minFor(key, s.checkin);
+    if (min > nightsOf(s)) return "min";
+    return "taken";
+  }
+  function cardHtml(key, eager) {
+    var v = VILLAS[key], q = state.quotes[key], s = state.search, n = nightsOf(s), st = statusOf(key);
     var foot;
-    if (!v.bookable) {
+    if (st === "ask") {
       foot = '<div><p class="unavail">Online booking for ' + esc(v.name) + ' opens soon.</p><p class="per">Message us and we’ll check your dates.</p></div>' +
         '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask about these dates</a>';
-    } else if (totalGuests() > v.max) {
+    } else if (st === "big") {
       foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">' + (v.dot === "forest" ? "For your group, see Palem and Kapuk together above." : "Message us and we’ll help with your group.") + '</p></div>' +
         (v.dot === "forest" ? "" : '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask us</a>');
-    } else if (q && q.available) {
+    } else if (st === "free") {
       foot = '<div><p class="price">' + idr(q.total, q.currency) + '</p><p class="per">' + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
         '<button type="button" class="btn" data-choose="' + key + '">Choose ' + esc(v.name.replace("Oasis ", "")) + "</button>";
+    } else if (st === "min") {
+      var min = minFor(key, s.checkin);
+      foot = '<div><p class="unavail">Minimum stay ' + min + ' nights from ' + fmt(s.checkin, { day: "numeric", month: "short" }) + '.</p></div>' +
+        '<button type="button" class="btn btn-line" data-extend="' + min + '">See ' + min + " nights</button>";
     } else {
-      foot = '<div><p class="unavail">Booked for these dates.</p><p class="per">Message us for the nearest free dates.</p></div>' +
+      foot = '<div><p class="unavail">Booked for these dates.</p></div>' +
         '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask about other dates</a>';
     }
-    return '<article class="card">' + photosHtml(v) +
+    if (st !== "free" && st !== "big") {
+      // Compact card: villas you can't book for these dates take little room.
+      return '<article class="card compact"><img class="thumb" src="' + pic(v.photos[0], 320, 240) + '" alt="" loading="lazy" decoding="async">' +
+        '<div class="info"><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow) + "</p>" +
+        '<h2 class="vname">' + esc(v.name) + "</h2>" +
+        '<div class="price-row">' + foot + "</div></div></article>";
+    }
+    return '<article class="card">' + photosHtml(v, "", eager) +
       '<div class="info"><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow) + "</p>" +
       '<h2 class="vname">' + esc(v.name) + "</h2>" +
       '<p class="vsub">' + esc(v.sub) + "</p>" +
@@ -394,6 +537,10 @@
       factsHtml(v.facts) +
       '<p class="body">' + esc(v.body) + "</p>" +
       '<div class="price-row">' + foot + "</div></div></article>";
+  }
+  function names(keys) {
+    var n = keys.map(function (k) { return VILLAS[k].name; });
+    return n.length < 2 ? n.join("") : n.slice(0, -1).join(", ") + " and " + n[n.length - 1];
   }
 
   // Groups of 7–12: both forest villas, booked together with us.
@@ -418,40 +565,49 @@
   }
 
   function renderResults() {
-    var s = state.search, order = ORDER[s.villa] || ORDER.forest;
-    var g = totalGuests(), big = g > 6;
+    var s = state.search, order = ORDER[s.villa] || ORDER.all, scope = SCOPE[s.villa] || SCOPE.all;
+    var g = totalGuests(), big = g > 6, nn = nightsOf(s);
     var open = ["palem", "kapuk"].filter(function (k) { var q = state.quotes[k]; return q && q.available; });
-    var free = big ? [] : open;
+    var st = {}; order.forEach(function (k) { st[k] = statusOf(k); });
+    var freeIn = order.filter(function (k) { return scope.indexOf(k) >= 0 && st[k] === "free"; });
+    var freeOut = order.filter(function (k) { return scope.indexOf(k) < 0 && st[k] === "free"; });
+    var free = freeIn.concat(freeOut);
+    var rest = order.filter(function (k) { return st[k] !== "free"; });
+    var minAll = rest.length && rest.every(function (k) { return st[k] === "min"; }) && !free.length;
+    var scopeName = { forest: "The forest villas are", jati: "Oasis Jati is", ceylon: "Ceylon Residences is", all: "" }[s.villa] || "";
     var title;
-    if (s.villa === "jati") title = "Oasis Jati for your dates";
-    else if (s.villa === "ceylon") title = "Ceylon Residences for your dates";
-    else if (big && g <= 12 && open.length === 2) title = "Palem and Kapuk together sleep " + g;
-    else if (big) title = "Each forest villa sleeps up to 6";
-    else if (free.length === 2) title = s.villa === "all" ? "Both forest villas are free, and here are our other houses" : "Both forest villas are free";
-    else if (free.length === 1) title = VILLAS[free[0]].name + " is free for your dates";
-    else title = "The forest villas are taken for those dates";
+    if (big && s.villa !== "jati" && s.villa !== "ceylon" && g <= 12 && open.length === 2) title = "Palem and Kapuk together sleep " + g;
+    else if (big) title = "Each villa sleeps up to 6";
+    else if (minAll) title = "The minimum stay is " + minFor(rest[0], s.checkin) + " nights for these dates";
+    else if (!free.length) title = "Nothing is free for those dates";
+    else if (!freeIn.length) title = scopeName + " taken, but " + names(freeOut) + (freeOut.length > 1 ? " are" : " is") + " free";
+    else if (s.villa === "all" && freeIn.length === 4) title = "All four houses are free for your dates";
+    else if (s.villa === "forest" && freeIn.length === 2) title = "Both forest villas are free";
+    else title = names(freeIn) + (freeIn.length > 1 ? " are" : " is") + " free for your dates";
     $("#results-title").textContent = title;
-    var nn = nightsOf(s);
     $("#results-sub").textContent = longRange(s) + " · " + nn + (nn === 1 ? " night" : " nights") + " · " + guestsText();
     $("[data-pill-text]").textContent = shortRange(s) + " · " + totalGuests() + " guests · " + VILLA_LABEL[s.villa];
-    $("[data-pill-dot]").className = "dot " + (s.villa === "jati" ? "jati" : s.villa === "ceylon" ? "ceylon" : "forest");
+    $("[data-pill-dot]").className = "dot " + (s.villa === "jati" ? "jati" : s.villa === "ceylon" ? "ceylon" : s.villa === "all" ? "none" : "forest");
 
-    var html = "", forestShown = false;
+    var html = "";
     if (big && s.villa !== "jati" && s.villa !== "ceylon") html += groupHtml(open, g);
-    order.forEach(function (key, i) {
-      var isForest = key === "palem" || key === "kapuk";
-      if (i > 0) {
-        if (key === "jati") html += '<p class="label muted section-label">' + (s.villa === "ceylon" ? "Also from us" : "Also at Oasis") + "</p>";
-        else if (key === "ceylon") html += '<p class="label muted section-label">Also from us, in Suluban</p>';
-        else if (isForest && !forestShown && order[0] !== "palem") html += '<p class="label muted section-label">The forest villas, also at Oasis</p>';
-      }
-      if (isForest) forestShown = true;
-      html += cardHtml(key);
-    });
+    freeIn.forEach(function (k, i) { html += cardHtml(k, i === 0); });
+    if (freeOut.length) {
+      html += '<p class="label muted section-label">' + (freeIn.length ? "Also free for your dates" : "Free for your dates") + "</p>";
+      freeOut.forEach(function (k, i) { html += cardHtml(k, !freeIn.length && i === 0); });
+    }
+    if (rest.length) {
+      if (!big) html += '<p class="label muted section-label">' + (minAll ? "Choose a longer stay" : "Not available for your dates") + "</p>";
+      rest.forEach(function (k) { html += cardHtml(k); });
+    }
+    if (!free.length && !minAll && !big) html += '<div class="group-box"><p>Message us and we’ll find the nearest free dates.</p><a class="btn" href="https://wa.me/' + WA + '?text=' + encodeURIComponent("Hi Oasis, is anything free around " + shortRange(s) + " " + d(s.checkout).getFullYear() + "? We are " + guestsText() + ".") + '" target="_blank" rel="noopener">WhatsApp us</a></div>';
     var box = $("#results");
     box.innerHTML = html;
     wireCarousels(box);
     $all("[data-choose]", box).forEach(function (b) { b.addEventListener("click", function () { openVilla(b.getAttribute("data-choose")); }); });
+    $all("[data-extend]", box).forEach(function (b) { b.addEventListener("click", function () {
+      runSearch({ checkin: s.checkin, checkout: addDays(s.checkin, Number(b.getAttribute("data-extend"))), villa: s.villa });
+    }); });
     if (free.length) pixel("ViewContent", { content_ids: free, content_type: "hotel" });
   }
 
@@ -492,7 +648,7 @@
   function openVilla(key) {
     var v = VILLAS[key], q = state.quotes[key], n = nightsOf(state.search);
     state.villa = key;
-    $("#villa-photos").innerHTML = photosHtml(v);
+    $("#villa-photos").innerHTML = photosHtml(v, "", true);
     wireCarousels($("#villa-photos"));
     $("#villa-eyebrow").innerHTML = '<span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow);
     $("#villa-name").textContent = v.name;
@@ -507,6 +663,7 @@
     $("#villa-dock").innerHTML = '<div class="what"><span class="a">' + idr(q.total, q.currency) + '</span><span class="b">' + shortRange(state.search) + " · non-refundable</span></div>" +
       '<button type="button" class="btn" data-go="details">Continue</button>';
     show("villa");
+    getListing(key).catch(function () {});
     pixel("ViewContent", { content_ids: [key], content_type: "hotel", value: q.total, currency: q.currency });
   }
 
@@ -532,13 +689,59 @@
     note.style.color = over ? "#8A3B1E" : "";
   }
   function onPage() { return !!state.config.stripePk; }
+
+  // ---------- "Before you pay": house terms and what's included, from the Guesty listing ----------
+  var listingCache = {};
+  function getListing(key) {
+    if (!listingCache[key]) listingCache[key] = fetch("/api/listing/" + key).then(function (r) { if (!r.ok) throw 0; return r.json(); });
+    return listingCache[key];
+  }
+  function clean(line) { return line.replace(/^[^A-Za-z0-9(]+/, "").trim(); }
+  // The listing's "access" text has two lists: free with every stay, and on request at a charge.
+  function splitAccess(text) {
+    var out = { incl: [], extra: [] }, cur = null;
+    String(text || "").split(/\n/).forEach(function (raw) {
+      var l = raw.trim(); if (!l) { return; }
+      if (/included in every stay/i.test(l)) { cur = "incl"; return; }
+      if (/additional charges apply|on request/i.test(l) && /:$/.test(l)) { cur = "extra"; return; }
+      if (/and so much more/i.test(l)) return;
+      if (cur) out[cur].push(clean(l).replace(/\s*\.$/, ""));
+    });
+    return out;
+  }
+  function hm(t) { if (!t) return ""; var p = t.split(":"), h = Number(p[0]), m = p[1] || "00"; return (h % 12 || 12) + (m !== "00" ? ":" + m : "") + (h < 12 ? "am" : "pm"); }
+  function renderTerms(key) {
+    var v = VILLAS[key], q = state.quotes[key], body = $("#terms-body");
+    body.innerHTML = '<p class="small muted">Loading the house details…</p>';
+    getListing(key).then(function (l) {
+      if (state.villa !== key) return;
+      var pd = l.publicDescription || {}, acc = splitAccess(pd.access), min = (l.terms && l.terms.minNights) || 1;
+      var meals = acc.extra.some(function (x) { return /breakfast|chef/i.test(x); });
+      var h = '<dl class="terms">' +
+        "<div><dt>Check-in and checkout</dt><dd>Check-in from " + hm(l.checkInTime) + ", checkout by " + hm(l.checkOutTime) + ".</dd></div>" +
+        "<div><dt>Guests</dt><dd>Up to " + v.max + " guests" + (min > 1 ? " · minimum stay " + min + " nights" : "") + ".</dd></div>" +
+        "<div><dt>Cancellation</dt><dd>Non-refundable. You pay the full amount now, and it isn’t refunded if you cancel or change your dates.</dd></div>" +
+        "<div><dt>Price</dt><dd>" + idr(q.total, q.currency) + " in total, charged in " + esc(q.currency || "IDR") + " when you book. It includes the booking fee shown in the price details.</dd></div>" +
+        "</dl>";
+      if (acc.incl.length) h += '<p class="t-h">Included in your stay</p><ul class="ticks">' + acc.incl.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+      if (meals) h += '<p class="t-h">Not included</p><ul class="crosses"><li>Meals. Breakfast or a private chef can be arranged, at an extra charge.</li></ul>';
+      if (acc.extra.length) h += '<p class="t-h">On request, at an extra charge</p><p class="small">' + esc(acc.extra.join(" · ")) + "</p>";
+      if (pd.houseRules) h += '<p class="t-h">House rules</p><p class="small">' + esc(pd.houseRules) + "</p>";
+      if (pd.notes) h += '<p class="t-h">Good to know</p><p class="small">' + esc(pd.notes) + "</p>";
+      h += '<p class="fine">Your booking is with Balinest Villas, who manage the house, under their <a href="' + TERMS_URL + '" target="_blank" rel="noopener">terms and conditions</a> and <a href="' + PRIVACY_URL + '" target="_blank" rel="noopener">privacy policy</a>.</p>';
+      body.innerHTML = h;
+    }).catch(function () {
+      body.innerHTML = '<p class="small">Non-refundable: you pay the full amount now, and it isn’t refunded if you cancel. Check-in from 3pm, checkout by 11am. See the <a href="' + TERMS_URL + '" target="_blank" rel="noopener">booking terms</a>.</p>';
+    });
+  }
   function openDetails() {
     var v = VILLAS[state.villa], q = state.quotes[state.villa];
     renderCounts();
     loadPhoneLib();
     $("#details-pcard").innerHTML =
-      '<div class="mini"><div class="ph" style="background-image:url(\'' + v.photos[0] + '\')"></div><div><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow.split(" · ")[0]) + '</p><p class="vname">' + esc(v.name) + "</p></div></div>" +
+      '<div class="mini"><div class="ph" style="background-image:url(\'' + pic(v.photos[0], 240, 180) + '\')"></div><div><p class="eyebrow"><span class="dot ' + v.dot + '"></span>' + esc(v.eyebrow.split(" · ")[0]) + '</p><p class="vname">' + esc(v.name) + "</p></div></div>" +
       stayBox() + breakdown(q) + finePrint(q);
+    renderTerms(state.villa);
     $("#pay-onpage").hidden = !onPage();
     $("#pay-handoff").hidden = onPage();
     $("#pay-btn").textContent = onPage() ? "Confirm and pay " + idr(q.total, q.currency) : "Continue to secure payment";
@@ -639,17 +842,50 @@
     return "ID";
   }
   function flag(cc) { return cc.replace(/./g, function (c) { return String.fromCodePoint(127397 + c.charCodeAt(0)); }); }
+  // Country code: a button showing flag and code, opening a list you can search
+  // by country name, code (+65) or letters (SG).
+  var COUNTRIES = [];
   function fillCountries() {
-    var sel = form.waCountry, names = null;
+    var names = null;
     try { names = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) {}
-    var list = phoneLib.getCountries().map(function (cc) {
+    COUNTRIES = phoneLib.getCountries().map(function (cc) {
       return { cc: cc, code: phoneLib.getCountryCallingCode(cc), name: names ? names.of(cc) : cc };
     }).sort(function (a, b) { return a.name.localeCompare(b.name); });
-    var want = sel.value || guessCountry();
-    sel.innerHTML = list.map(function (c) {
-      return '<option value="' + c.cc + '"' + (c.cc === want ? " selected" : "") + ">" + flag(c.cc) + " +" + c.code + "  " + esc(c.name) + "</option>";
-    }).join("");
+    setCountry(form.waCountry.value || guessCountry());
+    drawCountries("");
   }
+  function setCountry(cc) {
+    var c = COUNTRIES.filter(function (x) { return x.cc === cc; })[0] || COUNTRIES.filter(function (x) { return x.cc === "ID"; })[0];
+    if (!c) return;
+    form.waCountry.value = c.cc;
+    $("#cc-label").textContent = flag(c.cc) + " +" + c.code;
+    $("#cc-btn").setAttribute("aria-label", "Country code: " + c.name + " +" + c.code);
+  }
+  function drawCountries(q) {
+    q = q.trim().toLowerCase().replace(/^\+/, "");
+    var list = COUNTRIES.filter(function (c) {
+      return !q || c.name.toLowerCase().indexOf(q) >= 0 || c.code.indexOf(q) === 0 || c.cc.toLowerCase() === q;
+    });
+    $("#cc-list").innerHTML = list.map(function (c) {
+      return '<li role="option" tabindex="-1" data-cc="' + c.cc + '"' + (c.cc === form.waCountry.value ? ' aria-selected="true"' : "") + "><span>" + flag(c.cc) + " " + esc(c.name) + '</span><span class="muted">+' + c.code + "</span></li>";
+    }).join("") || '<li class="muted">No match</li>';
+  }
+  var ccBtn = $("#cc-btn"), ccPop = $("#cc-pop"), ccSearch = $("#cc-search");
+  function toggleCc(open) {
+    ccPop.hidden = !open; ccBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { ccSearch.value = ""; drawCountries(""); ccSearch.focus(); var sel = $('#cc-list [aria-selected="true"]'); if (sel) sel.scrollIntoView({ block: "center" }); }
+  }
+  ccBtn.addEventListener("click", function () { toggleCc(ccPop.hidden); });
+  ccSearch.addEventListener("input", function () { drawCountries(ccSearch.value); });
+  ccSearch.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); var f = $("#cc-list [data-cc]"); if (f) { setCountry(f.getAttribute("data-cc")); toggleCc(false); checkWa(); form.whatsapp.focus(); } }
+    if (e.key === "Escape") toggleCc(false);
+  });
+  $("#cc-list").addEventListener("click", function (e) {
+    var li = e.target.closest("[data-cc]"); if (!li) return;
+    setCountry(li.getAttribute("data-cc")); toggleCc(false); checkWa(); form.whatsapp.focus();
+  });
+  document.addEventListener("click", function (e) { if (!ccPop.hidden && !e.target.closest(".cc")) toggleCc(false); });
   function waNumber() {
     var raw = form.whatsapp.value.trim();
     if (!raw || !phoneLib) return "";
@@ -668,12 +904,11 @@
     if (phoneLib && /^\+/.test(raw)) {
       try {
         var p = phoneLib.parsePhoneNumber(raw);
-        if (p && p.country && p.isValid()) { form.waCountry.value = p.country; form.whatsapp.value = p.formatNational(); }
+        if (p && p.country && p.isValid()) { setCountry(p.country); form.whatsapp.value = p.formatNational(); }
       } catch (e) {}
     }
   }
   form.whatsapp.addEventListener("input", checkWa);
-  form.waCountry.addEventListener("change", checkWa);
 
   function handoffUrl() {
     var q = state.quotes[state.villa], s = state.search;
@@ -766,21 +1001,27 @@
   $("#transfer-no").addEventListener("click", function () { sendTransfer(false); });
 
   // ---------- start ----------
-  $(".start-photo").style.backgroundImage = "url('" + wix("568a684ab4514aba98c6b6f02dae6370", 1800, 1100) + "')";
+  $(".start-photo").style.backgroundImage = "url('" + wix("568a684ab4514aba98c6b6f02dae6370", window.innerWidth < 820 ? 800 : 1600, window.innerWidth < 820 ? 900 : 980) + "')";
   fetch("/api/config" + (/[?&]paytest=1/.test(location.search) ? "?test=1" : "")).then(function (r) { return r.json(); }).then(function (c) { state.config = Object.assign(state.config, c || {}); }).catch(function () {});
 
   (function initFromUrl() {
     var p = new URLSearchParams(location.search);
-    var villa = p.get("villa") || (p.get("from") === "jati" ? "jati" : "forest");
-    if (!ORDER[villa]) villa = "forest";
+    var villa = p.get("villa") || (p.get("from") === "jati" ? "jati" : "all");
+    if (villa === "palem" || villa === "kapuk") villa = "forest";
+    if (!ORDER[villa]) villa = "all";
     var a = parseInt(p.get("adults"), 10), c = parseInt(p.get("children"), 10);
     if (a > 0) state.adults = Math.min(a, 12);
     if (c >= 0) { state.children = Math.min(c, 8); state.ages = new Array(state.children).fill(""); }
     renderCounts();
     var s = { checkin: p.get("checkin") || "", checkout: p.get("checkout") || "", villa: villa };
     fillForms(s);
-    if (s.checkin && s.checkout && !checkDates(s) && s.checkin >= iso(new Date())) runSearch(s);
-    else show("start");
+    if (s.checkin && s.checkout && s.checkout > s.checkin && s.checkin >= iso(new Date())) runSearch(s);
+    else {
+      show("start");
+      loadAvail();
+      // On a phone, open straight to dates, guests and villa: no extra tap.
+      if (window.matchMedia("(max-width: 820px)").matches) openSheet();
+    }
   })();
 
   window.OasisBooking = { state: state, tracking: tracking };

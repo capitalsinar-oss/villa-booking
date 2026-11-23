@@ -266,3 +266,86 @@ img { display: block; max-width: 100%; }
 .gb-title { font: 400 26px/1.2 var(--serif); }
 .gb-price { font-weight: 700; font-size: 20px; }
 .gallery .gallery-stage .arrow { display: inline-flex; margin-top: 0; color: var(--ink); }
+
+/* ---------- range calendar ---------- */
+.bar .dates { flex: 1.1 1 0; } .bar .guests { flex: 0.9 1 0; } .bar .villa { flex: 1.3 1 0; }
+.cal-pop { width: 640px; padding: 14px 18px 12px; }
+.cal-head { display: flex; justify-content: space-between; margin: -4px -8px 0; }
+.cal-head .icon-btn:disabled { opacity: .25; }
+.cal-months { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: -36px; }
+.cal-month { padding: 4px 0 8px; }
+.cal-title { margin: 0 0 8px; text-align: center; font: 400 15px/1.4 var(--serif); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; }
+.cal-wd, .cal-wds span { font-size: 11px; color: var(--ink-soft); text-align: center; padding: 4px 0; }
+.cal-d { height: 40px; border: 0; background: none; font-size: 14px; cursor: pointer; border-radius: 0; position: relative; }
+.cal-d:hover:not(:disabled) { outline: 1px solid var(--ink); outline-offset: -1px; }
+.cal-d:disabled { color: rgba(47,52,34,0.28); cursor: default; }
+.cal-d.full { text-decoration: line-through; color: rgba(47,52,34,0.38); }
+.cal-d.today { font-weight: 700; }
+.cal-d.mid { background: rgba(47,52,34,0.10); text-decoration: none; color: var(--ink); }
+.cal-d.start, .cal-d.end { background: var(--ink); color: var(--paper); text-decoration: none; }
+.cal-hint { margin: 6px 0 0; font-size: 13px; color: var(--ink-soft); }
+[data-cal="phone"] .cal-wds { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--paper); border-bottom: 1px solid var(--line); }
+[data-cal="phone"] .cal-month { padding: 14px 0 4px; }
+[data-cal="phone"] .cal-title { text-align: left; }
+[data-cal="phone"] .cal-d { height: 46px; font-size: 15px; }
+[data-cal="phone"] .cal-hint { position: sticky; bottom: 0; background: var(--paper); padding: 8px 0; border-top: 1px solid var(--line); }
+
+/* phone sheet: villa chips, compact guests, date tiles */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid var(--line-strong); border-radius: 99px; font-size: 14px; cursor: pointer; background: var(--white); }
+.chip span .dot { width: 7px; height: 7px; }
+.chip input:checked + span { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip input:checked + span .dot.forest { background: var(--page); }
+.chip input:checked + span .dot.jati { background: var(--page); }
+.chip input:checked + span .dot.ceylon { border-color: var(--page); }
+.chip input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sheet-guests .prow { padding: 6px 0; }
+.sheet-guests .stepper button { height: 36px; }
+.sheet-dates { border-bottom: 0; padding-bottom: 0; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line-strong); background: var(--white); }
+.tile { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.tile + .tile { border-left: 1px solid var(--line-strong); }
+.tile .k { margin: 0; font-size: 10px; }
+.tile .v { font-size: 15px; }
+.tile.on { box-shadow: inset 0 -2px 0 var(--ink); }
+.sheet-sec { padding: 14px 0; }
+
+/* results: compact cards for villas you can't book for these dates */
+.card.compact { flex-wrap: nowrap; align-items: stretch; margin-bottom: 14px; }
+.card.compact .thumb { width: 200px; flex: none; object-fit: cover; background: var(--photo); }
+.card.compact .info { padding: 16px 20px; gap: 6px; }
+.card.compact .vname { font-size: 24px; }
+.card.compact .price-row { margin-top: 4px; align-items: center; }
+@media (max-width: 820px) {
+  .card.compact { margin: 0 -16px 10px; }
+  .card.compact .thumb { width: 108px; }
+  .card.compact .info { padding: 12px 14px; }
+  .card.compact .vname { font-size: 20px; }
+  .card.compact .eyebrow { font-size: 10px; letter-spacing: 1.2px; }
+  .card.compact .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
+  .sheet-body { padding: 0 16px 0; }
+}
+
+/* WhatsApp country picker with search */
+.phone { grid-template-columns: auto minmax(0, 1fr); }
+.cc { position: relative; }
+.cc-btn { height: 100%; min-height: 46px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--white); border: 1px solid var(--line-strong); border-right: 0; cursor: pointer; font-size: 15px; white-space: nowrap; }
+.cc-pop { position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; width: min(320px, 86vw); background: var(--paper); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(23,23,19,0.16); }
+.cc-pop input { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 12px; font-size: 16px; background: var(--white); }
+.cc-pop ul { list-style: none; margin: 0; padding: 4px 0; max-height: 280px; overflow-y: auto; }
+.cc-pop li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; font-size: 14px; cursor: pointer; color: var(--ink); }
+.cc-pop li:hover, .cc-pop li[aria-selected="true"] { background: rgba(47,52,34,0.08); }
+
+/* before you pay */
+.terms { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.terms > div { display: grid; grid-template-columns: 170px 1fr; gap: 12px; font-size: 14px; line-height: 1.5; }
+.terms dt { font-weight: 700; }
+.terms dd { margin: 0; }
+.t-h { margin: 8px 0 0; font-weight: 700; font-size: 14px; }
+.ticks, .crosses { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; font-size: 14px; }
+.ticks li::before { content: "✓"; margin-right: 8px; color: #2E7D4F; font-weight: 700; }
+.crosses li::before { content: "✕"; margin-right: 8px; color: #8A3B1E; }
+.crosses { grid-template-columns: 1fr; }
+@media (max-width: 820px) { .terms > div { grid-template-columns: 1fr; gap: 2px; } .ticks { grid-template-columns: 1fr; } }
