@@ -2,7 +2,7 @@
      Opens the booking app (BOOK) with the search filled in, and points "Book Now" there too.
      Installed as a Wix Custom Embed (BODY_END, FUNCTIONAL). Source: villa-booking/wix/booking-bar.html -->
 <style>
-#oasis-bb{position:sticky;top:var(--oasis-hdr,0px);z-index:60;background:#DFD2C1;border-top:1px solid rgba(47,52,34,.14);border-bottom:1px solid rgba(47,52,34,.14);font-family:marcellus,serif;color:#2F3422}
+#oasis-bb{position:sticky;top:var(--oasis-hdr,0px);transition:top .25s ease;z-index:60;background:#DFD2C1;border-top:1px solid rgba(47,52,34,.14);border-bottom:1px solid rgba(47,52,34,.14);font-family:marcellus,serif;color:#2F3422}
 #oasis-bb *{box-sizing:border-box;font-family:inherit}
 #oasis-bb form{max-width:1040px;margin:0 auto;height:54px;display:flex;align-items:center;gap:0;padding:0 16px}
 #oasis-bb label{display:flex;flex-direction:column;justify-content:center;height:38px;padding:0 16px;border-left:1px solid rgba(47,52,34,.18);flex:1 1 0;min-width:0;cursor:pointer}
@@ -183,10 +183,12 @@
     if (!hdr || !bar) return;
     var pos = getComputedStyle(hdr).position, fixed = pos === "sticky" || pos === "fixed";
     var r = hdr.getBoundingClientRect();
-    var top = fixed ? Math.max(0, Math.min(r.bottom, r.height)) : 0;
+    var shown = parseFloat(getComputedStyle(hdr).opacity) > 0.5 && getComputedStyle(hdr).visibility !== "hidden";
+    var top = fixed && shown ? Math.max(0, Math.min(r.bottom, r.height)) : 0;
     bar.style.setProperty("--oasis-hdr", Math.round(top) + "px");
   }
-  addEventListener("scroll", setTop, { passive: true });
+  var topT;
+  addEventListener("scroll", function () { setTop(); clearTimeout(topT); topT = setTimeout(setTop, 450); }, { passive: true });
   function tick() { if (build()) sync(); if (document.body) waButton(); }
   tick();
   var n = 0, t = setInterval(function () { tick(); if (++n > 40) clearInterval(t); }, 250);
