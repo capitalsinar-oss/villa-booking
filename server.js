@@ -360,6 +360,20 @@ async function reportPurchase({ data, guest, stay, tracking, req }) {
   await Promise.all(jobs);
 }
 
+// Checks the server-side reporting keys work, without sending any event. Shows no secrets.
+app.get("/api/report-status", async (req, res) => {
+  const out = { meta: "off", ga4: process.env.GA4_API_SECRET ? "key set" : "off" };
+  if (process.env.META_CAPI_TOKEN) {
+    try {
+      const pixelId = process.env.META_PIXEL_ID || "1081596576728068";
+      const r = await fetch(`https://graph.facebook.com/v23.0/${pixelId}?fields=name&access_token=${encodeURIComponent(process.env.META_CAPI_TOKEN)}`);
+      const j = await r.json();
+      out.meta = r.ok ? `ok (${j.name})` : `error: ${j.error?.message || r.status}`;
+    } catch (e) { out.meta = "error: " + e.message; }
+  }
+  res.json(out);
+});
+
 app.post("/api/book", async (req, res) => {
   const { quoteId, ratePlanId, ccToken, guest, policy, tracking, stay } = req.body || {};
   if (!quoteId || !ratePlanId || !ccToken) {
