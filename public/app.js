@@ -419,6 +419,10 @@
   }
   document.addEventListener("click", function (e) {
     if (e.target.closest("[data-open-sheet]")) { e.preventDefault(); openSheet(); }
+    if (e.target.closest("[data-change-dates]")) {
+      e.preventDefault();
+      if (matchMedia("(max-width: 820px)").matches) openSheet(); else { window.scrollTo(0, 0); toggleDates(true); }
+    }
     if (e.target.closest("[data-close-sheet]")) { e.preventDefault(); closeSheet(true); }
   });
   $("#sheet-clear").addEventListener("click", function () {
@@ -546,11 +550,9 @@
     var v = VILLAS[key], q = state.quotes[key], s = state.search, n = nightsOf(s), st = statusOf(key);
     var foot;
     if (st === "ask") {
-      foot = '<div><p class="unavail">Online booking for ' + esc(v.name) + ' opens soon.</p><p class="per">Message us and we’ll check your dates.</p></div>' +
-        '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask about these dates</a>';
+      foot = '<div><p class="unavail">Online booking for ' + esc(v.name) + ' opens soon.</p></div>';
     } else if (st === "big") {
-      foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">' + (v.dot === "forest" ? "For your group, see Palem and Kapuk together above." : "Message us and we’ll help with your group.") + '</p></div>' +
-        (v.dot === "forest" ? "" : '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask us</a>');
+      foot = '<div><p class="unavail">Sleeps up to ' + v.max + ' guests.</p><p class="per">' + (v.dot === "forest" ? "For your group, see Palem and Kapuk together above." : "Try fewer guests, or see the villas that fit your group above.") + '</p></div>';
     } else if (st === "free") {
       foot = '<div><p class="price">' + idr(q.total, q.currency) + '</p><p class="per">' + (n > 1 ? "about " + idr(q.total / n, q.currency) + " a night · " : "") + n + (n === 1 ? " night" : " nights") + " · non-refundable</p></div>" +
         '<button type="button" class="btn" data-choose="' + key + '">Choose ' + esc(v.name.replace("Oasis ", "")) + "</button>";
@@ -560,7 +562,7 @@
         '<button type="button" class="btn btn-line" data-extend="' + min + '">See ' + min + " nights</button>";
     } else {
       foot = '<div><p class="unavail">Booked for these dates.</p></div>' +
-        '<a class="btn btn-line" href="' + askLink(key) + '" target="_blank" rel="noopener">Ask about other dates</a>';
+        '<button type="button" class="btn btn-line" data-change-dates>Try other dates</button>';
     }
     if (st !== "free" && st !== "big") {
       // Compact card: villas you can't book for these dates take little room.
@@ -640,7 +642,7 @@
       if (!big) html += '<p class="label muted section-label">' + (minAll ? "Choose a longer stay" : "Not available for your dates") + "</p>";
       rest.forEach(function (k) { html += cardHtml(k); });
     }
-    if (!free.length && !minAll && !big) html += '<div class="group-box"><p>Message us and we’ll find the nearest free dates.</p><a class="btn" href="' + wa("Hi Oasis, is anything free around " + shortRange(s) + " " + d(s.checkout).getFullYear() + "? We are " + guestsText() + ".") + '" target="_blank" rel="noopener">WhatsApp us</a></div>';
+    if (!free.length && !minAll && !big) html += '<div class="group-box"><p>Nothing is free for these dates. Crossed-out nights in the calendar are fully booked, so pick nights without a line through them.</p><button type="button" class="btn" data-change-dates>Change dates</button></div>';
     var box = $("#results");
     box.innerHTML = html;
     wireCarousels(box);
