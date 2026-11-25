@@ -366,9 +366,19 @@ app.get("/api/report-status", async (req, res) => {
   if (process.env.META_CAPI_TOKEN) {
     try {
       const pixelId = process.env.META_PIXEL_ID || "1081596576728068";
-      const r = await fetch(`https://graph.facebook.com/v23.0/${pixelId}?fields=name&access_token=${encodeURIComponent(process.env.META_CAPI_TOKEN)}`);
+      // A CAPI token can send events but not read the pixel, so the check sends one
+      // Purchase marked with Meta's test code: it shows in Test events only and is never counted.
+      const code = String(req.query.test || process.env.META_TEST_CODE || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 20);
+      if (!code) { out.meta = "token set; add ?test=<code from Events Manager > Test events> to check it"; return res.json(out); }
+      const r = await fetch(`https://graph.facebook.com/v23.0/${pixelId}/events?access_token=${encodeURIComponent(process.env.META_CAPI_TOKEN)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test_event_code: code, data: [{ event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), event_id: "test-" + Date.now(),
+          action_source: "website", event_source_url: "https://book.oasisuluwatu.com/",
+          user_data: { em: [sha("test@oasisuluwatu.com")], client_user_agent: req.headers["user-agent"] || "check" },
+          custom_data: { currency: "IDR", value: 1, content_type: "hotel" } }] }),
+      });
       const j = await r.json();
-      out.meta = r.ok ? `ok (${j.name})` : `error: ${j.error?.message || r.status}`;
+      out.meta = r.ok ? `ok (events received: ${j.events_received})` : `error: ${j.error?.message || r.status}`;
     } catch (e) { out.meta = "error: " + e.message; }
   }
   res.json(out);
