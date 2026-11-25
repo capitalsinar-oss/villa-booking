@@ -16,7 +16,18 @@
   function wixSet(ids) { return ids.map(function (x) { return typeof x === "string" ? { id: x } : x; }); }
   function abnb(id) { return { abnb: id }; }
 
-  var WA = "6281236676828";
+  var WA = "8613124866181"; // Jayne's WhatsApp, run by the Azure Guest Enquiries process (Jayne, 25 Nov 2026)
+  // Every WhatsApp message from the site ends with a ref, e.g. (ref OAS-meta-booking), so the
+  // enquiry process knows it came from the website and from which ad channel.
+  function waRef(page) {
+    var t = {}; try { t = JSON.parse(sessionStorage.getItem("oasis_src") || "{}"); } catch (e) {}
+    var u = (t.utm_source || "").toLowerCase(), src = "web";
+    if (t.fbclid || /facebook|instagram|meta|fb|ig/.test(u)) src = "meta";
+    else if (t.gclid || /google/.test(u)) src = "google";
+    else if (/chatgpt|openai|gpt/.test(u)) src = "gpt";
+    return " (ref OAS-" + src + "-" + (page || "booking") + ")";
+  }
+  function wa(text, page) { return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text + waRef(page)); }
   var VILLAS = {
     palem: {
       name: "Oasis Palem", dot: "forest", eyebrow: "Forest villa · Pecatu, Uluwatu", bookable: true, max: 6,
@@ -518,7 +529,7 @@
   function askLink(key) {
     var s = state.search, v = VILLAS[key];
     var text = "Hi Oasis, are " + shortRange(s) + " " + d(s.checkout).getFullYear() + " free at " + v.name + "? We are " + guestsText() + ".";
-    return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text);
+    return wa(text);
   }
 
   // free · taken · min (stay too short) · big (party too large) · ask (not bookable online)
@@ -590,7 +601,7 @@
     var s = state.search;
     var text = "Hi Oasis, we'd like to book " + (open.length >= 2 ? "Palem and Kapuk together" : "the forest villas") + " for " + shortRange(s) + " " + d(s.checkout).getFullYear() + ". We are " + guestsText() + "." +
       (total ? " The page showed " + idr(total, state.quotes.palem.currency) + " for both." : "");
-    return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text);
+    return wa(text);
   }
 
   function renderResults() {
@@ -629,7 +640,7 @@
       if (!big) html += '<p class="label muted section-label">' + (minAll ? "Choose a longer stay" : "Not available for your dates") + "</p>";
       rest.forEach(function (k) { html += cardHtml(k); });
     }
-    if (!free.length && !minAll && !big) html += '<div class="group-box"><p>Message us and we’ll find the nearest free dates.</p><a class="btn" href="https://wa.me/' + WA + '?text=' + encodeURIComponent("Hi Oasis, is anything free around " + shortRange(s) + " " + d(s.checkout).getFullYear() + "? We are " + guestsText() + ".") + '" target="_blank" rel="noopener">WhatsApp us</a></div>';
+    if (!free.length && !minAll && !big) html += '<div class="group-box"><p>Message us and we’ll find the nearest free dates.</p><a class="btn" href="' + wa("Hi Oasis, is anything free around " + shortRange(s) + " " + d(s.checkout).getFullYear() + "? We are " + guestsText() + ".") + '" target="_blank" rel="noopener">WhatsApp us</a></div>';
     var box = $("#results");
     box.innerHTML = html;
     wireCarousels(box);

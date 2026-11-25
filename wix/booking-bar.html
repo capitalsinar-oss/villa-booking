@@ -21,6 +21,10 @@
   #oasis-bb .m span{font-size:15px}
   #oasis-bb .m button{margin:0;height:34px;padding:0 16px;font-size:12px}
 }
+#oasis-wa{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 14px;border-radius:26px;background:#2F3422;color:#DFD2C1;font-family:marcellus,serif;font-size:14px;letter-spacing:.6px;text-decoration:none;box-shadow:0 6px 18px rgba(23,23,19,.25)}
+#oasis-wa:hover{background:#171713}
+#oasis-wa svg{width:24px;height:24px;flex:0 0 auto}
+@media (max-width:820px){#oasis-wa{width:52px;padding:0;justify-content:center}#oasis-wa span{display:none}}
 </style>
 <script>
 (function () {
@@ -111,7 +115,34 @@
     }
   }
 
-  function tick() { if (build()) sync(); }
+
+  // Floating WhatsApp button (Jayne, 25 Nov 2026): opens Jayne's WhatsApp, run by the Azure
+  // Guest Enquiries process. The message ends with (ref OAS-<source>-<page>) so the process
+  // knows it came from the website and from which ad channel.
+  var WA = "8613124866181";
+  function waRef() {
+    var t = src(), u = (t.utm_source || "").toLowerCase(), s = "web";
+    if (t.fbclid || /facebook|instagram|meta|fb|ig/.test(u)) s = "meta";
+    else if (t.gclid || /google/.test(u)) s = "google";
+    else if (/chatgpt|openai|gpt/.test(u)) s = "gpt";
+    var page = location.pathname.replace(/^\/+|\/+$/g, "").replace(/[^a-z0-9]+/gi, "") || "home";
+    return "(ref OAS-" + s + "-" + page.toLowerCase().slice(0, 30) + ")";
+  }
+  function waText() {
+    var v = villaForPage(), name = v === "jati" ? "Oasis Jati" : v === "forest" ? "the forest villas" : v === "ceylon" ? "Ceylon" : "Oasis";
+    return "Hi! I have a question about staying at " + name + ". " + waRef();
+  }
+  function waButton() {
+    var a = document.getElementById("oasis-wa");
+    if (!a) {
+      a = document.createElement("a");
+      a.id = "oasis-wa"; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", "Chat with us on WhatsApp");
+      a.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3z"/></svg><span>Chat with us</span>';
+      document.body.appendChild(a);
+    }
+    a.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(waText());
+  }
+  function tick() { if (build()) sync(); if (document.body) waButton(); }
   tick();
   var n = 0, t = setInterval(function () { tick(); if (++n > 40) clearInterval(t); }, 250);
   var queued = false;
