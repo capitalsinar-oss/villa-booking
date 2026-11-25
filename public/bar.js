@@ -108,13 +108,11 @@
     var p = location.pathname.toLowerCase(), ref = waRef();
     var list = [
       { k: "stay", t: "Plan a stay", d: "Dates, prices, which villa suits you", m: "Hi! We're thinking of staying at " + name + ". Our dates are … and we'll be … guests. " + ref },
-      { k: "q", t: "A question about the villas", d: "Facilities, location, what's included", m: "Hi! I have a question about " + name + ": " + ref },
       { k: "partner", t: "Partnerships and creators", d: "Collaborations, events, brand work", m: "Hi Oasis! I'd like to talk about a partnership: " + ref },
-      { k: "design", t: "Design and build", d: "The architecture, building with our team", m: "Hi Oasis! I have a question about your design and build work: " + ref },
-      { k: "invest", t: "Investing with Oasis", d: "Owning or investing in a villa", m: "Hi Oasis! I'm interested in investing: " + ref },
+      { k: "invest", t: "Investing, design and build", d: "Owning a villa, building with our team", m: "Hi Oasis! I'm interested in investing or in your design and build work: " + ref },
       { k: "other", t: "Something else", d: "", m: "Hi Oasis! " + ref }
     ];
-    var first = /partner|creation|collab/.test(p) ? "partner" : /architect|design|build/.test(p) ? "design" : /invest/.test(p) ? "invest" : "stay";
+    var first = /partner|creation|collab/.test(p) ? "partner" : /invest|architect|design|build/.test(p) ? "invest" : "stay";
     list.sort(function (a, b) { return (b.k === first) - (a.k === first); });
     return list;
   }
