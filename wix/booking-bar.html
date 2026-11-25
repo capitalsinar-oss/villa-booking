@@ -105,8 +105,7 @@
   function sync() {
     var hdr = document.getElementById("SITE_HEADER"), bar = document.getElementById("oasis-bb");
     if (hdr && bar) {
-      var sticky = getComputedStyle(hdr).position === "sticky" || getComputedStyle(hdr).position === "fixed";
-      bar.style.setProperty("--oasis-hdr", sticky ? hdr.getBoundingClientRect().height + "px" : "0px");
+      setTop();
     }
     var v = villaForPage();
     if (bar && bar.dataset.path !== location.pathname) { bar.dataset.path = location.pathname; bar.querySelector("form").villa.value = v; }
@@ -177,6 +176,17 @@
       return '<a class="' + (i === 0 ? "pri" : "") + '" target="_blank" rel="noopener" href="https://wa.me/' + WA + "?text=" + encodeURIComponent(x.m) + '">' + x.t + (x.d ? "<small>" + x.d + "</small>" : "") + "</a>";
     }).join("");
   }
+  // Stick the bar right under the header while the header is on screen, and to the very top
+  // once Wix slides the header away on scroll (Jayne, 25 Nov 2026: "booking bar needs to be on top").
+  function setTop() {
+    var hdr = document.getElementById("SITE_HEADER"), bar = document.getElementById("oasis-bb");
+    if (!hdr || !bar) return;
+    var pos = getComputedStyle(hdr).position, fixed = pos === "sticky" || pos === "fixed";
+    var r = hdr.getBoundingClientRect();
+    var top = fixed ? Math.max(0, Math.min(r.bottom, r.height)) : 0;
+    bar.style.setProperty("--oasis-hdr", Math.round(top) + "px");
+  }
+  addEventListener("scroll", setTop, { passive: true });
   function tick() { if (build()) sync(); if (document.body) waButton(); }
   tick();
   var n = 0, t = setInterval(function () { tick(); if (++n > 40) clearInterval(t); }, 250);
