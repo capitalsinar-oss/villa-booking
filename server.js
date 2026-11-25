@@ -318,6 +318,48 @@ app.get("/api/calendar", async (req, res) => {
   }
 });
 
+const crypto = require("crypto");
+const sha = (v) => (v ? crypto.createHash("sha256").update(String(v).trim().toLowerCase()).digest("hex") : undefined);
+async function reportPurchase({ data, guest, stay, tracking, req }) {
+  const t = tracking || {}, st = stay || {};
+  const code = data.confirmationCode || data._id;
+  const value = Number(st.total) || undefined, currency = st.currency || "IDR";
+  const villa = st.villa || undefined;
+  const jobs = [];
+  if (process.env.META_CAPI_TOKEN) {
+    const phone = guest.phone ? String(guest.phone).replace(/\D/g, "") : "";
+    const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+    const ev = {
+      event_name: "Purchase", event_time: Math.floor(Date.now() / 1000), event_id: "purchase-" + code,
+      action_source: "website", event_source_url: t.page || "https://book.oasisuluwatu.com/",
+      user_data: {
+        em: [sha(guest.email)], ...(phone ? { ph: [sha(phone)] } : {}),
+        fn: [sha(guest.firstName)], ln: [sha(guest.lastName)],
+        client_ip_address: ip || undefined, client_user_agent: req.headers["user-agent"] || undefined,
+        fbp: t.fbp || undefined, fbc: t.fbc || undefined,
+      },
+      custom_data: { currency, value, content_ids: villa ? [villa] : undefined, content_type: "hotel", order_id: code },
+    };
+    const pixelId = process.env.META_PIXEL_ID || "1081596576728068";
+    jobs.push(fetch(`https://graph.facebook.com/v23.0/${pixelId}/events?access_token=${encodeURIComponent(process.env.META_CAPI_TOKEN)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: [ev], ...(process.env.META_TEST_CODE ? { test_event_code: process.env.META_TEST_CODE } : {}) }),
+    }).then(async (r) => console.log("meta_capi:", r.status, (await r.text()).slice(0, 200))));
+  }
+  if (process.env.GA4_API_SECRET) {
+    const mid = process.env.GA4_MEASUREMENT_ID || "G-TJ274KHR96";
+    const clientId = t.gaClientId || `${Math.floor(Math.random() * 1e10)}.${Math.floor(Date.now() / 1000)}`;
+    jobs.push(fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${mid}&api_secret=${encodeURIComponent(process.env.GA4_API_SECRET)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ client_id: clientId, events: [{ name: "purchase", params: {
+        transaction_id: code, value, currency,
+        items: villa ? [{ item_id: villa, item_name: villa }] : [],
+      } }] }),
+    }).then((r) => console.log("ga4_mp:", r.status)));
+  }
+  await Promise.all(jobs);
+}
+
 app.post("/api/book", async (req, res) => {
   const { quoteId, ratePlanId, ccToken, guest, policy, tracking, stay } = req.body || {};
   if (!quoteId || !ratePlanId || !ccToken) {
@@ -367,6 +409,9 @@ app.post("/api/book", async (req, res) => {
     // Instant email to Balinest's reservations inbox with everything Guesty
     // can't hold (special requests, children's ages, WhatsApp). Never blocks the guest.
     sendBookingAlert({ data, guest, stay }).catch((e) => console.error("alert_failed:", e.message));
+    // Server-side conversion reporting (Meta Conversions API, Google Analytics), so a
+    // booking still counts when an ad blocker stops the browser tags. Off until keys are set.
+    reportPurchase({ data, guest, stay, tracking, req }).catch((e) => console.error("report_failed:", e.message));
 
     res.json({
       reservationId: data._id,

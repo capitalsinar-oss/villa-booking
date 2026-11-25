@@ -116,12 +116,21 @@
     if (!saved.landing) { saved.landing = location.href.slice(0, 500); saved.referrer = document.referrer.slice(0, 300); }
     store("oasis_src", JSON.stringify(saved));
   })();
-  function tracking() { try { return JSON.parse(load("oasis_src") || "{}"); } catch (e) { return {}; } }
+  function cookie(n) { var m = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; }
+  function tracking() {
+    var t = {}; try { t = JSON.parse(load("oasis_src") || "{}"); } catch (e) {}
+    // For server-side reporting: Meta browser ids and the Google Analytics client id.
+    t.fbp = cookie("_fbp") || undefined; t.fbc = cookie("_fbc") || undefined;
+    var ga = cookie("_ga").split("."); if (ga.length >= 4) t.gaClientId = ga[2] + "." + ga[3];
+    t.page = location.href.split("#")[0].slice(0, 500);
+    return t;
+  }
   // Every funnel event goes to Meta (fbq) and to GTM's dataLayer under its GA4 name.
   var GA4 = { Search: "search", ViewContent: "view_item", InitiateCheckout: "begin_checkout", Lead: "generate_lead", Purchase: "purchase" };
-  function pixel(ev, data) {
+  function pixel(ev, data, eventId) {
     data = data || {};
-    try { if (window.fbq) window.fbq("track", ev, data); } catch (e) {}
+    // eventID lets Meta match this browser event with the same one sent from our server.
+    try { if (window.fbq) { if (eventId) window.fbq("track", ev, data, { eventID: eventId }); else window.fbq("track", ev, data); } } catch (e) {}
     // Clarity: mark each funnel step, so recordings can be filtered by how far a visitor got.
     try { if (window.clarity) { window.clarity("event", ev); if (data.content_ids && data.content_ids.length) window.clarity("set", "villa", data.content_ids.join(",")); } } catch (e) {}
     try {
@@ -974,7 +983,7 @@
     }).then(function (res) {
       if (!res.ok) throw new Error(res.j.code || res.j.error || "booking_failed");
       state.booking = res.j;
-      pixel("Purchase", { value: q.total, currency: q.currency, content_ids: [state.villa], content_type: "hotel" });
+      pixel("Purchase", { value: q.total, currency: q.currency, content_ids: [state.villa], content_type: "hotel" }, "purchase-" + (res.j.confirmationCode || res.j.reservationId));
       openConfirmed();
     }).catch(function () {
       btn.disabled = false; btn.textContent = "Confirm and pay " + idr(q.total, q.currency);
