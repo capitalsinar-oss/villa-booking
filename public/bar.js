@@ -1,5 +1,5 @@
 /* Oasis booking bar + WhatsApp button for oasisuluwatu.com. Loaded by a Wix Custom Embed: <script src="https://book.oasisuluwatu.com/bar.js" defer></script>. Source: villa-booking/wix/booking-bar.html */
-(function(){if(document.getElementById('oasis-bb-css'))return;var s=document.createElement('style');s.id='oasis-bb-css';s.textContent="#oasis-bb{position:sticky;top:var(--oasis-hdr,0px);z-index:60;background:#DFD2C1;border-top:1px solid rgba(47,52,34,.14);border-bottom:1px solid rgba(47,52,34,.14);font-family:marcellus,serif;color:#2F3422}\n#oasis-bb *{box-sizing:border-box;font-family:inherit}\n#oasis-bb form{max-width:1040px;margin:0 auto;height:54px;display:flex;align-items:center;gap:0;padding:0 16px}\n#oasis-bb label{display:flex;flex-direction:column;justify-content:center;height:38px;padding:0 16px;border-left:1px solid rgba(47,52,34,.18);flex:1 1 0;min-width:0;cursor:pointer}\n#oasis-bb label:first-child{border-left:0;padding-left:0}\n#oasis-bb .k{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#878372;line-height:1.2}\n#oasis-bb input,#oasis-bb select{border:0;background:transparent;color:#2F3422;font-size:15px;padding:0;margin:0;height:20px;width:100%;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer}\n#oasis-bb select{background:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232F3422' stroke-width='1.2'/%3E%3C/svg%3E\") right 2px center no-repeat;padding-right:16px}\n#oasis-bb input:focus-visible,#oasis-bb select:focus-visible{text-decoration:underline}\n#oasis-bb button{flex:0 0 auto;height:38px;padding:0 22px;margin-left:12px;border:0;border-radius:0;background:#2F3422;color:#DFD2C1;font-size:13px;letter-spacing:1.4px;cursor:pointer;white-space:nowrap}\n#oasis-bb button:hover{background:#171713}\n#oasis-bb .m{display:none}\n@media (max-width:820px){\n  #oasis-bb form{height:50px;padding:0 16px;justify-content:space-between}\n  #oasis-bb label,#oasis-bb button.d{display:none}\n  #oasis-bb .m{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}\n  #oasis-bb .m span{font-size:15px}\n  #oasis-bb .m button{margin:0;height:34px;padding:0 16px;font-size:12px}\n}\n#oasis-wa{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 14px;border-radius:26px;background:#2F3422;color:#DFD2C1;font-family:marcellus,serif;font-size:14px;letter-spacing:.6px;text-decoration:none;box-shadow:0 6px 18px rgba(23,23,19,.25)}\n#oasis-wa:hover{background:#171713}\n#oasis-wa svg{width:24px;height:24px;flex:0 0 auto}\n@media (max-width:820px){#oasis-wa{width:52px;padding:0;justify-content:center}#oasis-wa span{display:none}}";document.head.appendChild(s);})();
+(function(){if(document.getElementById('oasis-bb-css'))return;var s=document.createElement('style');s.id='oasis-bb-css';s.textContent="#oasis-bb{position:sticky;top:var(--oasis-hdr,0px);z-index:60;background:#DFD2C1;border-top:1px solid rgba(47,52,34,.14);border-bottom:1px solid rgba(47,52,34,.14);font-family:marcellus,serif;color:#2F3422}\n#oasis-bb *{box-sizing:border-box;font-family:inherit}\n#oasis-bb form{max-width:1040px;margin:0 auto;height:54px;display:flex;align-items:center;gap:0;padding:0 16px}\n#oasis-bb label{display:flex;flex-direction:column;justify-content:center;height:38px;padding:0 16px;border-left:1px solid rgba(47,52,34,.18);flex:1 1 0;min-width:0;cursor:pointer}\n#oasis-bb label:first-child{border-left:0;padding-left:0}\n#oasis-bb .k{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#878372;line-height:1.2}\n#oasis-bb input,#oasis-bb select{border:0;background:transparent;color:#2F3422;font-size:15px;padding:0;margin:0;height:20px;width:100%;outline:none;-webkit-appearance:none;appearance:none;cursor:pointer}\n#oasis-bb select{background:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%232F3422' stroke-width='1.2'/%3E%3C/svg%3E\") right 2px center no-repeat;padding-right:16px}\n#oasis-bb input:focus-visible,#oasis-bb select:focus-visible{text-decoration:underline}\n#oasis-bb button{flex:0 0 auto;height:38px;padding:0 22px;margin-left:12px;border:0;border-radius:0;background:#2F3422;color:#DFD2C1;font-size:13px;letter-spacing:1.4px;cursor:pointer;white-space:nowrap}\n#oasis-bb button:hover{background:#171713}\n#oasis-bb .m{display:none}\n@media (max-width:820px){\n  #oasis-bb form{height:50px;padding:0 16px;justify-content:space-between}\n  #oasis-bb label,#oasis-bb button.d{display:none}\n  #oasis-bb .m{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px}\n  #oasis-bb .m span{font-size:15px}\n  #oasis-bb .m button{margin:0;height:34px;padding:0 16px;font-size:12px}\n}\n#oasis-wa{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 14px;border-radius:26px;background:#2F3422;color:#DFD2C1;font-family:marcellus,serif;font-size:14px;letter-spacing:.6px;text-decoration:none;box-shadow:0 6px 18px rgba(23,23,19,.25)}\n#oasis-wa:hover{background:#171713}\n#oasis-wa svg{width:24px;height:24px;flex:0 0 auto}\n@media (max-width:820px){#oasis-wa{width:52px;padding:0;justify-content:center}#oasis-wa span{display:none}}\n#oasis-wa-menu{position:fixed;right:18px;bottom:80px;z-index:9999;width:300px;max-width:calc(100vw - 36px);background:#F6F1EA;color:#2F3422;border:1px solid rgba(47,52,34,.18);box-shadow:0 10px 30px rgba(23,23,19,.22);font-family:marcellus,serif;padding:16px 16px 10px}\n#oasis-wa-menu[hidden]{display:none}\n#oasis-wa-menu p{margin:0 0 10px;font-size:15px}\n#oasis-wa-menu a{display:block;padding:11px 12px;margin:0 0 6px;border:1px solid rgba(47,52,34,.18);color:#2F3422;text-decoration:none;font-size:14px;line-height:1.3}\n#oasis-wa-menu a:hover,#oasis-wa-menu a.pri{background:#2F3422;color:#DFD2C1;border-color:#2F3422}\n#oasis-wa-menu small{display:block;font-size:11px;color:#878372;margin-top:2px}\n#oasis-wa-menu a:hover small,#oasis-wa-menu a.pri small{color:#DFD2C1}";document.head.appendChild(s);})();
 (function () {
   var BOOK = "https://book.oasisuluwatu.com";
   var KEYS = ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid","gclid"];
@@ -101,19 +101,49 @@
     var page = location.pathname.replace(/^\/+|\/+$/g, "").replace(/[^a-z0-9]+/gi, "") || "home";
     return "(ref OAS-" + s + "-" + page.toLowerCase().slice(0, 30) + ")";
   }
-  function waText() {
+  // Topics (Jayne, 25 Nov 2026: "give more options, it's not necessarily about booking").
+  // The topic that matches the page comes first.
+  function topics() {
     var v = villaForPage(), name = v === "jati" ? "Oasis Jati" : v === "forest" ? "the forest villas" : v === "ceylon" ? "Ceylon" : "Oasis";
-    return "Hi! I have a question about staying at " + name + ". " + waRef();
+    var p = location.pathname.toLowerCase(), ref = waRef();
+    var list = [
+      { k: "stay", t: "Plan a stay", d: "Dates, prices, which villa suits you", m: "Hi! We're thinking of staying at " + name + ". Our dates are … and we'll be … guests. " + ref },
+      { k: "q", t: "A question about the villas", d: "Facilities, location, what's included", m: "Hi! I have a question about " + name + ": " + ref },
+      { k: "partner", t: "Partnerships and creators", d: "Collaborations, events, brand work", m: "Hi Oasis! I'd like to talk about a partnership: " + ref },
+      { k: "design", t: "Design and build", d: "The architecture, building with our team", m: "Hi Oasis! I have a question about your design and build work: " + ref },
+      { k: "invest", t: "Investing with Oasis", d: "Owning or investing in a villa", m: "Hi Oasis! I'm interested in investing: " + ref },
+      { k: "other", t: "Something else", d: "", m: "Hi Oasis! " + ref }
+    ];
+    var first = /partner|creation|collab/.test(p) ? "partner" : /architect|design|build/.test(p) ? "design" : /invest/.test(p) ? "invest" : "stay";
+    list.sort(function (a, b) { return (b.k === first) - (a.k === first); });
+    return list;
   }
   function waButton() {
-    var a = document.getElementById("oasis-wa");
+    var a = document.getElementById("oasis-wa"), m = document.getElementById("oasis-wa-menu");
     if (!a) {
       a = document.createElement("a");
-      a.id = "oasis-wa"; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", "Chat with us on WhatsApp");
+      a.id = "oasis-wa"; a.href = "#"; a.setAttribute("role", "button"); a.setAttribute("aria-label", "Chat with us on WhatsApp"); a.setAttribute("aria-expanded", "false");
       a.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3z"/></svg><span>Chat with us</span>';
-      document.body.appendChild(a);
+      m = document.createElement("div");
+      m.id = "oasis-wa-menu"; m.hidden = true; m.setAttribute("role", "dialog"); m.setAttribute("aria-label", "What can we help with?");
+      document.body.appendChild(m); document.body.appendChild(a);
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        var open = m.hidden;
+        if (open) fill(m);
+        m.hidden = !open; a.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      document.addEventListener("click", function (e) {
+        if (!m.hidden && !m.contains(e.target) && !a.contains(e.target)) { m.hidden = true; a.setAttribute("aria-expanded", "false"); }
+      });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") { m.hidden = true; a.setAttribute("aria-expanded", "false"); } });
     }
-    a.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(waText());
+  }
+  function fill(m) {
+    var list = topics();
+    m.innerHTML = "<p>What can we help with?</p>" + list.map(function (x, i) {
+      return '<a class="' + (i === 0 ? "pri" : "") + '" target="_blank" rel="noopener" href="https://wa.me/' + WA + "?text=" + encodeURIComponent(x.m) + '">' + x.t + (x.d ? "<small>" + x.d + "</small>" : "") + "</a>";
+    }).join("");
   }
   function tick() { if (build()) sync(); if (document.body) waButton(); }
   tick();
